@@ -5,7 +5,7 @@
 @section('kasir_subheading', 'Pantau resep dokter, penjualan harian, dan stok obat secara terhubung.')
 
 @section('kasir_content')
-<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-6">
+<section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-10 gap-6">
     <article class="bg-white rounded-[2rem] p-6 shadow-sm">
         <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Obat</p>
         <h3 class="text-3xl font-black mt-2">{{ $stats['total_medicines'] }}</h3>
@@ -37,6 +37,54 @@
     <article class="bg-white rounded-[2rem] p-6 shadow-sm">
         <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Omzet Tanpa Resep</p>
         <h3 class="text-2xl font-black mt-2 text-indigo-700">Rp {{ number_format((float) $stats['today_non_prescription_revenue'], 0, ',', '.') }}</h3>
+    </article>
+    <article class="bg-white rounded-[2rem] p-6 shadow-sm">
+        <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Pemasukan Bulan Ini</p>
+        <h3 class="text-2xl font-black mt-2 text-emerald-700">Rp {{ number_format((float) $stats['month_total_revenue'], 0, ',', '.') }}</h3>
+    </article>
+    <article class="bg-white rounded-[2rem] p-6 shadow-sm">
+        <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Pemasukan Tahun Ini</p>
+        <h3 class="text-2xl font-black mt-2 text-sky-700">Rp {{ number_format((float) $stats['year_total_revenue'], 0, ',', '.') }}</h3>
+    </article>
+</section>
+
+<section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <article class="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <p class="text-[10px] uppercase tracking-widest font-bold text-amber-700">Warning Stok Rendah</p>
+                <h3 class="mt-1 text-2xl font-black text-amber-800">{{ number_format((int) ($stats['low_stock_medicines'] ?? 0)) }} Obat</h3>
+                <p class="mt-2 text-sm text-amber-800/90">Obat dengan stok 1-10 butuh restock segera.</p>
+            </div>
+            <span class="material-symbols-outlined text-[28px] text-amber-700">warning</span>
+        </div>
+        <div class="mt-4">
+            <a href="{{ route('kasir.medicines.index', ['status' => 'low_stock']) }}" class="inline-flex rounded-lg bg-amber-700 px-3 py-2 text-xs font-bold text-white hover:bg-amber-800 transition-colors">
+                Lihat Filter Stok Rendah
+            </a>
+        </div>
+    </article>
+
+    <article class="rounded-[2rem] border border-rose-200 bg-rose-50 p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <p class="text-[10px] uppercase tracking-widest font-bold text-rose-700">Warning Kadaluarsa</p>
+                <h3 class="mt-1 text-2xl font-black text-rose-800">{{ number_format((int) (($stats['expired_medicines'] ?? 0) + ($stats['expiring_soon_medicines'] ?? 0))) }} Obat</h3>
+                <p class="mt-2 text-sm text-rose-800/90">
+                    Expired: {{ number_format((int) ($stats['expired_medicines'] ?? 0)) }} •
+                    Segera expired: {{ number_format((int) ($stats['expiring_soon_medicines'] ?? 0)) }}
+                </p>
+            </div>
+            <span class="material-symbols-outlined text-[28px] text-rose-700">error</span>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+            <a href="{{ route('kasir.medicines.index', ['status' => 'expiring']) }}" class="inline-flex rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white hover:bg-rose-700 transition-colors">
+                Lihat Segera Expired
+            </a>
+            <a href="{{ route('kasir.medicines.index', ['status' => 'expired']) }}" class="inline-flex rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors">
+                Lihat Sudah Expired
+            </a>
+        </div>
     </article>
 </section>
 
@@ -134,13 +182,9 @@
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-2">
-                        <form method="POST" action="{{ route('kasir.prescriptions.dispense', $prescription) }}" class="flex items-center gap-2">
-                            @csrf
-                            <input type="text" inputmode="numeric" name="markup_amount" value="0" data-currency-input class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" placeholder="Tambahan" />
-                            <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">
-                                Proses Tebus Resep
-                            </button>
-                        </form>
+                        <a href="{{ route('kasir.transaksi', ['prescription_id' => $prescription->id]) }}#transaksi-form" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">
+                            Proses Tebus Resep
+                        </a>
                         <a target="_blank" href="{{ route('kasir.prescriptions.print', $prescription) }}" class="px-3 py-2 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors">
                             Cetak Resep
                         </a>

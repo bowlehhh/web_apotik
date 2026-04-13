@@ -115,6 +115,40 @@
                 <p class="text-xs text-slate-500 mt-2">Akumulasi `jumlah x harga beli` dari semua pembelian obat bulan berjalan.</p>
             </div>
 
+            @if (($lowStockAlertMedicines ?? collect())->isNotEmpty())
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                    <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-amber-700 text-[20px]">warning</span>
+                        <div>
+                            <h4 class="font-bold text-amber-700">Peringatan Stok Rendah</h4>
+                            <p class="text-xs text-amber-700/90">
+                                {{ number_format((int) ($stats['low_stock_medicines'] ?? 0)) }} obat dengan stok 1-10.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @foreach ($lowStockAlertMedicines->take(5) as $medicine)
+                            <div class="rounded-xl border border-amber-200 bg-white/80 px-3 py-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-sm font-semibold text-slate-800 truncate">{{ $medicine->name }}</p>
+                                    <span class="shrink-0 text-[10px] font-bold text-amber-700">
+                                        SISA {{ number_format((int) $medicine->stock) }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-600 mt-1">
+                                    {{ $medicine->trade_name ?: '-' }} • {{ $medicine->unit }}
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ route('admin.data-obat', ['status' => 'low_stock']) }}" class="inline-flex rounded-lg bg-amber-700 px-3 py-2 text-xs font-bold text-white hover:bg-amber-800 transition-colors">
+                            Lihat Filter Stok Rendah
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             @if (($expiringAlertMedicines ?? collect())->isNotEmpty())
                 <div class="rounded-2xl border border-red-200 bg-red-50 p-5">
                     <div class="flex items-start gap-2">
@@ -122,7 +156,8 @@
                         <div>
                             <h4 class="font-bold text-red-700">Peringatan Expired</h4>
                             <p class="text-xs text-red-700/90">
-                                {{ number_format((int) $expiringAlertMedicines->count()) }} obat akan/sudah expired.
+                                Expired: {{ number_format((int) ($stats['expired_medicines'] ?? 0)) }} •
+                                Segera expired: {{ number_format((int) ($stats['expiring_soon_medicines'] ?? 0)) }}
                             </p>
                         </div>
                     </div>
@@ -131,6 +166,8 @@
                             @php
                                 $daysLeft = now()->startOfDay()->diffInDays(optional($medicine->expiry_date)->startOfDay(), false);
                                 $isExpired = $daysLeft < 0;
+                                $expBadgeClass = $isExpired ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
+                                $expPrefix = $isExpired ? 'Sudah Exp:' : 'Mau Exp:';
                             @endphp
                             <div class="rounded-xl border {{ $isExpired ? 'border-red-300 bg-red-100' : 'border-red-200 bg-white/80' }} px-3 py-2">
                                 <div class="flex items-center justify-between gap-2">
@@ -140,10 +177,21 @@
                                     </span>
                                 </div>
                                 <p class="text-[11px] text-slate-600 mt-1">
-                                    Exp {{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }} • Stok {{ number_format((int) $medicine->stock) }} {{ $medicine->unit }}
+                                    <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold {{ $expBadgeClass }}">
+                                        {{ $expPrefix }} {{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}
+                                    </span>
+                                    • Stok {{ number_format((int) $medicine->stock) }} {{ $medicine->unit }}
                                 </p>
                             </div>
                         @endforeach
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <a href="{{ route('admin.data-obat', ['status' => 'expiring']) }}" class="inline-flex rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 transition-colors">
+                            Lihat Segera Expired
+                        </a>
+                        <a href="{{ route('admin.data-obat', ['status' => 'expired']) }}" class="inline-flex rounded-lg border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors">
+                            Lihat Sudah Expired
+                        </a>
                     </div>
                 </div>
             @endif
@@ -204,6 +252,7 @@
         <table class="min-w-[760px] w-full text-left text-sm">
             <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <tr>
+                    <th class="px-4 py-3">ID Pembelian</th>
                     <th class="px-4 py-3">Waktu</th>
                     <th class="px-3 py-3">Obat</th>
                     <th class="px-3 py-3">Asal Pembelian</th>
@@ -216,6 +265,7 @@
             <tbody class="divide-y divide-slate-100">
                 @forelse ($recentPurchaseLogs as $log)
                     <tr>
+                        <td class="px-4 py-3 text-slate-700 font-semibold">#{{ $log->id }}</td>
                         <td class="px-4 py-3 text-slate-700">{{ optional($log->purchased_at)->format('d M Y H:i') ?: '-' }}</td>
                         <td class="px-3 py-3">
                             <p class="font-bold text-slate-800">{{ $log->medicine?->name ?? 'Obat tidak ditemukan' }}</p>
@@ -229,7 +279,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada riwayat pembelian gudang.</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada riwayat pembelian gudang.</td>
                     </tr>
                 @endforelse
             </tbody>

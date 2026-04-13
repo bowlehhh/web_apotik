@@ -99,6 +99,22 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($photoLogs as $log)
+                    @php
+                        $daysLeft = $log->expiry_date
+                            ? now()->startOfDay()->diffInDays($log->expiry_date->copy()->startOfDay(), false)
+                            : null;
+                        $isExpired = $daysLeft !== null && $daysLeft < 0;
+                        $isExpiringSoon = $daysLeft !== null && $daysLeft >= 0 && $daysLeft <= 30;
+                        $expBadgeClass = 'bg-emerald-100 text-emerald-800';
+                        $expPrefix = 'Belum Exp:';
+                        if ($isExpired) {
+                            $expBadgeClass = 'bg-red-100 text-red-700';
+                            $expPrefix = 'Sudah Exp:';
+                        } elseif ($isExpiringSoon) {
+                            $expBadgeClass = 'bg-amber-100 text-amber-700';
+                            $expPrefix = 'Mau Exp:';
+                        }
+                    @endphp
                     <tr class="align-top hover:bg-slate-50/70 transition-colors">
                         <td class="px-4 py-3 text-slate-700 font-semibold">
                             {{ ($photoLogs->firstItem() ?? 1) + $loop->index }}
@@ -134,7 +150,11 @@
                         <td class="px-4 py-3 font-extrabold text-slate-800">
                             Rp {{ number_format((float) $log->buy_price * (float) $log->quantity, 0, ',', '.') }}
                         </td>
-                        <td class="px-4 py-3 text-slate-700">{{ optional($log->expiry_date)->format('d M Y') ?: '-' }}</td>
+                        <td class="px-4 py-3 text-slate-700">
+                            <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold {{ $expBadgeClass }}">
+                                {{ $expPrefix }} {{ optional($log->expiry_date)->format('d M Y') ?: '-' }}
+                            </span>
+                        </td>
                         <td class="px-4 py-3 text-slate-700">{{ $log->createdBy?->name ?: '-' }}</td>
                         <td class="px-4 py-3 text-slate-600 text-xs max-w-[230px]">
                             {{ $log->notes ?: '-' }}

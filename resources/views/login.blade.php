@@ -103,7 +103,7 @@
                     <span class="block bg-gradient-to-r from-primary-fixed via-secondary-fixed-dim to-tertiary-fixed bg-clip-text text-transparent">
                         Kelola Database
                     </span>
-                    <span class="block text-white/95">Apotik Sehat</span>
+                    <span class="block text-white/95">Apotik Sumber Sehat</span>
                 </h1>
 
                 <p class="mt-5 max-w-md text-[15px] leading-relaxed text-white/80">
@@ -143,19 +143,19 @@
                     @php $defaultRole = old('role', \App\Models\User::ROLE_MASTER_ADMIN); @endphp
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
                         <label class="relative flex items-center justify-center p-3 rounded-xl bg-surface-container cursor-pointer border-2 border-transparent transition-all hover:bg-surface-container-high has-[:checked]:bg-primary-container has-[:checked]:text-white">
-                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_DOKTER }}" @checked($defaultRole === \App\Models\User::ROLE_DOKTER) />
+                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_DOKTER }}" data-identifier="dokter@apotik.test" @checked($defaultRole === \App\Models\User::ROLE_DOKTER) />
                             <span class="font-label text-[10px] font-bold uppercase tracking-wider text-center">Dokter</span>
                         </label>
                         <label class="relative flex items-center justify-center p-3 rounded-xl bg-surface-container cursor-pointer border-2 border-transparent transition-all hover:bg-surface-container-high has-[:checked]:bg-primary-container has-[:checked]:text-white">
-                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_ADMIN }}" @checked($defaultRole === \App\Models\User::ROLE_ADMIN) />
+                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_ADMIN }}" data-identifier="admin@apotik.test" @checked($defaultRole === \App\Models\User::ROLE_ADMIN) />
                             <span class="font-label text-[10px] font-bold uppercase tracking-wider text-center">Admin</span>
                         </label>
                         <label class="relative flex items-center justify-center p-3 rounded-xl bg-surface-container cursor-pointer border-2 border-transparent transition-all hover:bg-surface-container-high has-[:checked]:bg-primary-container has-[:checked]:text-white">
-                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_KASIR }}" @checked($defaultRole === \App\Models\User::ROLE_KASIR) />
+                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_KASIR }}" data-identifier="kasir@apotik.test" @checked($defaultRole === \App\Models\User::ROLE_KASIR) />
                             <span class="font-label text-[10px] font-bold uppercase tracking-wider text-center">Kasir</span>
                         </label>
                         <label class="relative flex items-center justify-center p-3 rounded-xl bg-surface-container cursor-pointer border-2 border-transparent transition-all hover:bg-surface-container-high has-[:checked]:bg-primary-container has-[:checked]:text-white">
-                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_MASTER_ADMIN }}" @checked($defaultRole === \App\Models\User::ROLE_MASTER_ADMIN) />
+                            <input class="hidden" type="radio" name="role" value="{{ \App\Models\User::ROLE_MASTER_ADMIN }}" data-identifier="masteradmin@apotik.test" @checked($defaultRole === \App\Models\User::ROLE_MASTER_ADMIN) />
                             <span class="font-label text-[10px] font-bold uppercase tracking-wider text-center">Master Admin</span>
                         </label>
                     </div>
@@ -178,14 +178,13 @@
                     </div>
 
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center px-1">
+                        <div class="px-1">
                             <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant" for="password">Password</label>
-                            <a class="text-xs font-bold text-primary hover:text-primary-container transition-colors" href="#">Forgot?</a>
                         </div>
                         <div class="relative">
                             <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-lg">lock</span>
                             <input
-                                class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-on-surface placeholder:text-outline/50 font-medium"
+                                class="w-full pl-12 pr-12 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-on-surface placeholder:text-outline/50 font-medium"
                                 id="password"
                                 name="password"
                                 type="password"
@@ -193,6 +192,15 @@
                                 placeholder="••••••••"
                                 autocomplete="current-password"
                             />
+                            <button
+                                class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-outline hover:text-primary transition-colors"
+                                id="toggle-password"
+                                type="button"
+                                aria-label="Tampilkan password"
+                                aria-pressed="false"
+                            >
+                                <span class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
                         </div>
                     </div>
 
@@ -202,15 +210,6 @@
                     </button>
                 </form>
 
-                <div class="mt-10 text-center">
-                    <p class="text-on-surface-variant text-xs font-medium">
-                        Need assistance? <a class="text-primary font-bold hover:underline" href="#">Contact Support</a>
-                    </p>
-                    <p class="text-on-surface-variant/80 text-[11px] font-medium mt-3">
-                        Seeder login utama: <span class="font-bold">dokter/admin/kasir/masteradmin@apotik.test</span> | Password:
-                        <span class="font-bold">rahasia123</span>
-                    </p>
-                </div>
             </div>
 
             <p class="text-center mt-8 text-white/60 text-xs font-label uppercase tracking-[0.2em] pointer-events-none">
@@ -225,5 +224,56 @@
             <span class="text-white/40 text-[10px] font-label uppercase tracking-widest">© 2024 APOTEK SUMBER SEHAT</span>
         </div>
     </div>
+    <script>
+        (() => {
+            const roleInputs = document.querySelectorAll('input[name="role"]');
+            const identifierInput = document.getElementById('identifier');
+            const passwordInput = document.getElementById('password');
+            const togglePasswordButton = document.getElementById('toggle-password');
+
+            if (!roleInputs.length || !identifierInput) {
+                return;
+            }
+
+            const syncIdentifierWithRole = (roleInput, force = false) => {
+                if (!roleInput || !roleInput.dataset.identifier) {
+                    return;
+                }
+
+                if (force || identifierInput.value.trim() === '') {
+                    identifierInput.value = roleInput.dataset.identifier;
+                }
+            };
+
+            roleInputs.forEach((roleInput) => {
+                roleInput.addEventListener('change', () => {
+                    if (!roleInput.checked) {
+                        return;
+                    }
+
+                    syncIdentifierWithRole(roleInput, true);
+                });
+            });
+
+            const activeRole = Array.from(roleInputs).find((input) => input.checked);
+            syncIdentifierWithRole(activeRole, false);
+
+            if (passwordInput && togglePasswordButton) {
+                const icon = togglePasswordButton.querySelector('.material-symbols-outlined');
+
+                togglePasswordButton.addEventListener('click', () => {
+                    const isHidden = passwordInput.type === 'password';
+
+                    passwordInput.type = isHidden ? 'text' : 'password';
+                    togglePasswordButton.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                    togglePasswordButton.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+
+                    if (icon) {
+                        icon.textContent = isHidden ? 'visibility_off' : 'visibility';
+                    }
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

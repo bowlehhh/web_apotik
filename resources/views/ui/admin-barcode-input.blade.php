@@ -136,18 +136,8 @@
                                 <span>Cari</span>
                             </button>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button data-open-image type="button" class="w-full rounded-full border border-outline-variant/40 bg-white py-3.5 text-sm font-bold text-on-surface">
-                                Kamera
-                            </button>
-                            <button data-open-gallery type="button" class="w-full rounded-full border border-outline-variant/40 bg-white py-3.5 text-sm font-bold text-on-surface">
-                                Galeri
-                            </button>
-                        </div>
-                        <input data-barcode-image-input type="file" accept="image/*" capture="environment" class="hidden" />
-                        <input data-barcode-gallery-input type="file" accept="image/*" class="hidden" />
-                        <p class="text-xs text-on-surface-variant text-left px-1">Pilih dari kamera atau galeri. Galeri biasanya paling stabil untuk HP.</p>
-                        <p data-camera-hint class="text-xs text-amber-700 text-left px-1 hidden">Akses kamera langsung bisa gagal jika halaman dibuka dari `http` biasa. Gunakan galeri atau buka lewat HTTPS/IP laptop.</p>
+                        <p class="text-xs text-on-surface-variant text-left px-1">Gunakan tombol Scan atau ketik barcode manual lalu tekan Cari.</p>
+                        <p data-camera-hint class="text-xs text-amber-700 text-left px-1 hidden">Akses kamera langsung bisa gagal jika halaman dibuka dari `http` biasa. Buka lewat HTTPS/IP laptop atau input barcode manual.</p>
                     </form>
                 </div>
             </section>
@@ -178,29 +168,14 @@
                             <p class="text-sm font-bold">{{ $medicine->stock }} {{ $medicine->unit }}</p>
                         </div>
                     </div>
-                    <form method="POST" action="{{ route('admin.warehouse.purchases.store') }}" enctype="multipart/form-data" class="space-y-3">
-                        @csrf
-                        <input type="hidden" name="medicine_id" value="{{ $medicine->id }}" />
-                        <input type="hidden" name="reset_to_barcode" value="1" />
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" inputmode="numeric" name="quantity" value="{{ old('quantity', number_format((float) $medicine->stock, 0, ',', '.')) }}" class="rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Jumlah masuk, contoh 1.000" required />
-                            <input type="text" inputmode="numeric" name="buy_price" value="{{ old('buy_price', number_format((float) $medicine->buy_price, 0, ',', '.')) }}" data-currency-input class="rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Harga beli, contoh 10.000.000" required />
-                        </div>
-                        <input type="text" name="purchase_source" value="{{ old('purchase_source', 'Scan barcode admin') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Outlet / tempat beli obat" required />
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="date" name="expiry_date" value="{{ old('expiry_date', optional($medicine->expiry_date)->format('Y-m-d')) }}" class="rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" />
-                            <input type="datetime-local" name="purchased_at" value="{{ old('purchased_at') }}" class="rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" />
-                        </div>
-                        <input type="file" name="photo" accept="image/*" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" />
-                        <textarea name="notes" rows="3" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Catatan gudang">{{ old('notes', 'Input stok dari scan barcode admin.') }}</textarea>
-                        <button type="submit" class="w-full rounded-full bg-primary py-4 text-sm font-bold text-on-primary shadow-lg shadow-primary/20">
-                            Simpan Ke Gudang
-                        </button>
-                    </form>
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <p class="text-sm font-bold text-amber-900">Barcode ini sudah ada di sistem.</p>
+                        <p class="text-sm text-amber-800 mt-1">Tetap bisa tambah sebagai data obat baru dari form "Tambah Barang Dari Barcode".</p>
+                    </div>
                 </section>
             @endif
 
-            @if ($searched && ! $medicine)
+            @if ($searched)
                 <section class="bg-white rounded-[1.75rem] p-5 border border-amber-100 shadow-sm space-y-4">
                     <div>
                         <p class="text-[10px] uppercase tracking-[0.25em] font-bold text-amber-700">Barang Baru</p>
@@ -211,26 +186,34 @@
                         <label class="block text-xs font-bold uppercase tracking-widest text-secondary">Kode Barang</label>
                         <input type="text" name="barcode" value="{{ old('barcode', $barcode) }}" readonly class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm font-semibold" />
                         <label class="block text-xs font-bold uppercase tracking-widest text-secondary">Nama Barang</label>
-                        <input type="text" name="name" value="{{ old('name') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Nama barang" required />
+                        <input type="text" name="name" value="{{ old('name', $medicine?->name) }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Nama barang" required />
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-secondary">Merek Dagang</label>
-                                <input type="text" name="trade_name" value="{{ old('trade_name') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Merek dagang" />
+                                <input type="text" name="trade_name" value="{{ old('trade_name', $medicine?->trade_name) }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Merek dagang" />
                             </div>
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-secondary">Dosis</label>
-                                <input type="text" name="dosage" value="{{ old('dosage') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Dosis" />
+                                <input type="text" name="dosage" value="{{ old('dosage', $medicine?->dosage) }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Dosis" />
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-secondary">Kategori</label>
-                                <input type="text" name="category" value="{{ old('category') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Kategori" />
+                                <select name="category" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm">
+                                    <option value="">Pilih kategori obat</option>
+                                    <option value="Obat Keras" @selected(old('category', $medicine?->category) === 'Obat Keras')>Obat Keras</option>
+                                    <option value="Obat Tidak Keras" @selected(old('category', $medicine?->category) === 'Obat Tidak Keras')>Obat Tidak Keras</option>
+                                    <option value="Obat Bebas" @selected(old('category', $medicine?->category) === 'Obat Bebas')>Obat Bebas</option>
+                                    <option value="Obat Bebas Terbatas" @selected(old('category', $medicine?->category) === 'Obat Bebas Terbatas')>Obat Bebas Terbatas</option>
+                                    <option value="Antibiotik" @selected(old('category', $medicine?->category) === 'Antibiotik')>Antibiotik</option>
+                                    <option value="Vitamin" @selected(old('category', $medicine?->category) === 'Vitamin')>Vitamin</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-secondary">Satuan</label>
                                 @php
-                                    $mobileUnit = old('unit', 'Tablet (pcs)');
+                                    $mobileUnit = old('unit', $medicine?->unit ?: 'Tablet (pcs)');
                                     $mobileHasPreset = in_array($mobileUnit, $unitOptions, true);
                                 @endphp
                                 <div data-unit-wrapper class="space-y-2">
@@ -273,7 +256,7 @@
                         </div>
                         <div>
                             <label class="mb-1 block text-xs font-bold uppercase tracking-widest text-secondary">Outlet / Tempat Beli</label>
-                            <input type="text" name="purchase_source" value="{{ old('purchase_source', 'Scan barcode admin') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Outlet / tempat beli obat" required />
+                            <input type="text" name="purchase_source" value="{{ old('purchase_source') }}" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Outlet / tempat beli obat" required />
                         </div>
                         <input type="file" name="photo" accept="image/*" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" />
                         <textarea name="notes" rows="3" class="w-full rounded-2xl border-none bg-surface-container-highest py-3 px-4 text-sm" placeholder="Catatan pembelian">{{ old('notes') }}</textarea>
@@ -363,19 +346,16 @@
         </a>
     </nav>
 
-    <button type="button" data-open-gallery class="fixed bottom-24 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-2xl active:scale-95 transition-transform">
-        <span class="material-symbols-outlined">photo_library</span>
-    </button>
 </div>
 
 <div class="hidden md:block">
 <section class="barcode-hero rounded-[2rem] border border-white/70 shadow-sm p-6 md:p-8">
     <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
-        <article class="xl:col-span-3 bg-white/90 rounded-[1.75rem] border border-slate-100 p-6 shadow-sm">
+        <article class="xl:col-span-5 bg-white/90 rounded-[1.75rem] border border-slate-100 p-6 shadow-sm">
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div>
                     <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-blue-700">Scan Barang</p>
-                    <h3 class="text-2xl font-black text-slate-900 mt-1">Cari Barang Dari Barcode</h3>
+                    <h3 class="text-2xl font-black text-slate-900 mt-1">Tambah Barang Dari Barcode / Tambah Barcode Untuk Barang Baru</h3>
                     <p class="text-sm text-slate-500 mt-2">Scanner USB atau Bluetooth bisa langsung dipakai di kolom kode barang. Kamera perangkat juga bisa dipakai dari tombol scan.</p>
                 </div>
                 <div class="hidden md:flex h-14 w-14 rounded-2xl bg-blue-600 text-white items-center justify-center shadow-lg shadow-blue-200">
@@ -417,21 +397,29 @@
                         <button id="openCameraScanner" type="button" onclick="window.startAdminBarcodeScanner && window.startAdminBarcodeScanner()" class="rounded-2xl bg-slate-900 text-white px-5 py-3.5 text-sm font-bold hover:bg-slate-800 transition-colors">
                             Scan Barcode
                         </button>
-                        <button id="openImageScanner" type="button" class="rounded-2xl bg-white border border-slate-200 text-slate-700 px-5 py-3.5 text-sm font-bold hover:bg-slate-50 transition-colors">
-                            Kamera
-                        </button>
-                        <button id="openGalleryScanner" type="button" class="rounded-2xl bg-white border border-slate-200 text-slate-700 px-5 py-3.5 text-sm font-bold hover:bg-slate-50 transition-colors">
-                            Galeri
-                        </button>
-                        <input id="barcodeImageInput" type="file" accept="image/*" capture="environment" class="hidden" />
-                        <input id="barcodeGalleryInput" type="file" accept="image/*" class="hidden" />
                     </div>
                     <p class="text-xs text-slate-500 mt-2">Scanner hardware yang bekerja seperti keyboard bisa langsung mengisi kolom ini. Jika scanner mengirim `Enter`, pencarian akan langsung berjalan.</p>
-                    <p id="barcodeCameraHint" class="text-xs text-amber-700 mt-2 hidden">Di HP, live camera bisa diblok jika halaman dibuka lewat `http` biasa. Gunakan tombol `Galeri` sebagai cara tes yang paling aman.</p>
+                    <p id="barcodeCameraHint" class="text-xs text-amber-700 mt-2 hidden">Di HP, live camera bisa diblok jika halaman dibuka lewat `http` biasa. Buka lewat HTTPS/IP laptop untuk hasil terbaik.</p>
                 </div>
             </form>
 
             @if ($medicine)
+                @php
+                    $foundDaysLeft = $medicine->expiry_date
+                        ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                        : null;
+                    $foundIsExpired = $foundDaysLeft !== null && $foundDaysLeft < 0;
+                    $foundIsExpiringSoon = $foundDaysLeft !== null && $foundDaysLeft >= 0 && $foundDaysLeft <= 30;
+                    $foundExpBadgeClass = 'bg-emerald-100 text-emerald-800';
+                    $foundExpPrefix = 'Belum Exp:';
+                    if ($foundIsExpired) {
+                        $foundExpBadgeClass = 'bg-red-100 text-red-700';
+                        $foundExpPrefix = 'Sudah Exp:';
+                    } elseif ($foundIsExpiringSoon) {
+                        $foundExpBadgeClass = 'bg-amber-100 text-amber-700';
+                        $foundExpPrefix = 'Mau Exp:';
+                    }
+                @endphp
                 <article class="mt-6 rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-5">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div class="flex items-center gap-4">
@@ -472,89 +460,27 @@
                         </div>
                         <div class="rounded-2xl bg-white p-4 border border-blue-100">
                             <p class="text-[10px] uppercase tracking-wider font-bold text-slate-400">Kadaluarsa</p>
-                            <p class="text-sm font-bold text-slate-800 mt-2">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</p>
+                            <p class="text-sm font-bold text-slate-800 mt-2">
+                                <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold {{ $foundExpBadgeClass }}">
+                                    {{ $foundExpPrefix }} {{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}
+                                </span>
+                            </p>
                         </div>
                     </div>
 
-                    <div class="mt-6 rounded-[1.5rem] border border-blue-100 bg-white p-5">
-                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                            <div>
-                                <p class="text-[11px] uppercase tracking-[0.24em] font-bold text-blue-700">Catat Gudang</p>
-                                <h5 class="text-lg font-black text-slate-900 mt-1">Tambah Stok Barang Ini Ke Gudang</h5>
-                            </div>
-                            <span class="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">
-                                Stok saat ini: {{ $medicine->stock }} {{ $medicine->unit }}
-                            </span>
-                        </div>
-
-                        <form method="POST" action="{{ route('admin.warehouse.purchases.store') }}" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @csrf
-                            <input type="hidden" name="medicine_id" value="{{ $medicine->id }}" />
-                            <input type="hidden" name="reset_to_barcode" value="1" />
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Jumlah Masuk</label>
-                                <input type="text" inputmode="numeric" name="quantity" value="{{ old('quantity', number_format((float) $medicine->stock, 0, ',', '.')) }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh 1.000" required />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Harga Beli</label>
-                                <input type="text" inputmode="numeric" name="buy_price" value="{{ old('buy_price', number_format((float) $medicine->buy_price, 0, ',', '.')) }}" data-currency-input class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh 10.000.000" required />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Kadaluarsa</label>
-                                <input type="date" name="expiry_date" value="{{ old('expiry_date', optional($medicine->expiry_date)->format('Y-m-d')) }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tanggal Pembelian</label>
-                                <input type="datetime-local" name="purchased_at" value="{{ old('purchased_at') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Outlet / Tempat Beli</label>
-                                <input type="text" name="purchase_source" value="{{ old('purchase_source', $medicine->purchase_source ?: 'Scan barcode admin') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Outlet Panakkukang / Supplier Farma" required />
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Foto Pembelian</label>
-                                <input type="file" name="photo" accept="image/*" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Catatan Gudang</label>
-                                <textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: pembelian dari supplier A">{{ old('notes', 'Input stok dari scan barcode admin.') }}</textarea>
-                            </div>
-                            <div class="md:col-span-2 flex justify-end">
-                                <button type="submit" class="rounded-2xl bg-blue-600 text-white px-6 py-3.5 text-sm font-bold hover:bg-blue-700 transition-colors">
-                                    Simpan Ke Gudang
-                                </button>
-                            </div>
-                        </form>
+                    <div class="mt-6 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5">
+                        <p class="text-sm font-bold text-amber-900">Barcode ini sudah ada di sistem.</p>
+                        <p class="text-sm text-amber-800 mt-1">Jika ingin membuat data obat terpisah (batch baru), lanjutkan isi form "Tambah Barang Dari Barcode" di bawah.</p>
                     </div>
                 </article>
             @endif
         </article>
 
-        <article class="xl:col-span-2 bg-slate-950 text-white rounded-[1.75rem] p-6 shadow-sm overflow-hidden relative">
-            <div class="absolute -top-16 -right-8 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl"></div>
-            <div class="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-blue-500/10 blur-3xl"></div>
-            <p class="text-[11px] uppercase tracking-[0.32em] font-bold text-cyan-300 relative">2 Metode Scan</p>
-            <h3 class="text-2xl font-black mt-2 relative">Siap Untuk Scanner dan Kamera</h3>
-            <div class="space-y-4 mt-6 relative">
-                <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-                    <p class="font-bold text-white">Hardware Scanner</p>
-                    <p class="text-sm text-slate-300 mt-1">Colok scanner USB atau hubungkan scanner Bluetooth, lalu arahkan kursor ke field `kode barang` dan scan seperti mengetik biasa.</p>
-                </div>
-                <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-                    <p class="font-bold text-white">Kamera Perangkat</p>
-                    <p class="text-sm text-slate-300 mt-1">Klik tombol `Scan Barcode`, izinkan akses kamera, lalu arahkan barcode ke bingkai scan sampai terbaca otomatis.</p>
-                </div>
-                <div class="rounded-2xl bg-emerald-400/10 border border-emerald-400/20 p-4">
-                    <p class="font-bold text-emerald-300">Alur Otomatis</p>
-                    <p class="text-sm text-emerald-50/90 mt-1">Jika barang ditemukan, data langsung tampil. Jika belum ada, admin bisa lanjut isi form barang baru tanpa mengetik ulang barcode.</p>
-                </div>
-            </div>
-        </article>
     </div>
 </section>
 </div>
 
-@if ($searched && ! $medicine)
+@if ($searched)
     <section class="hidden md:block bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 md:p-8">
         <div class="mb-6">
             <p class="text-[11px] uppercase tracking-[0.28em] font-bold text-amber-700">Barang Baru</p>
@@ -570,24 +496,32 @@
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Nama Barang</label>
-                <input type="text" name="name" value="{{ old('name') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:ring-blue-500" required />
+                <input type="text" name="name" value="{{ old('name', $medicine?->name) }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:ring-blue-500" required />
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Merek Dagang</label>
-                <input type="text" name="trade_name" value="{{ old('trade_name') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
+                <input type="text" name="trade_name" value="{{ old('trade_name', $medicine?->trade_name) }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Dosis</label>
-                <input type="text" name="dosage" value="{{ old('dosage') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: 500 mg" />
+                <input type="text" name="dosage" value="{{ old('dosage', $medicine?->dosage) }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: 500 mg" />
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Kategori</label>
-                <input type="text" name="category" value="{{ old('category') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Antibiotik" />
+                <select name="category" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                    <option value="">Pilih kategori obat</option>
+                    <option value="Obat Keras" @selected(old('category', $medicine?->category) === 'Obat Keras')>Obat Keras</option>
+                    <option value="Obat Tidak Keras" @selected(old('category', $medicine?->category) === 'Obat Tidak Keras')>Obat Tidak Keras</option>
+                    <option value="Obat Bebas" @selected(old('category', $medicine?->category) === 'Obat Bebas')>Obat Bebas</option>
+                    <option value="Obat Bebas Terbatas" @selected(old('category', $medicine?->category) === 'Obat Bebas Terbatas')>Obat Bebas Terbatas</option>
+                    <option value="Antibiotik" @selected(old('category', $medicine?->category) === 'Antibiotik')>Antibiotik</option>
+                    <option value="Vitamin" @selected(old('category', $medicine?->category) === 'Vitamin')>Vitamin</option>
+                </select>
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Satuan</label>
                 @php
-                    $desktopUnit = old('unit', 'Tablet (pcs)');
+                    $desktopUnit = old('unit', $medicine?->unit ?: 'Tablet (pcs)');
                     $desktopHasPreset = in_array($desktopUnit, $unitOptions, true);
                 @endphp
                 <div data-unit-wrapper class="space-y-2">
@@ -625,7 +559,7 @@
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Outlet / Tempat Beli</label>
-                <input type="text" name="purchase_source" value="{{ old('purchase_source', 'Scan barcode admin') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Outlet Panakkukang" required />
+                <input type="text" name="purchase_source" value="{{ old('purchase_source') }}" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Outlet Panakkukang" required />
             </div>
             <div class="xl:col-span-2">
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Foto Barang</label>
@@ -843,12 +777,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const startCameraScanner = async () => {
         if (! canUseDirectCamera) {
-            notify('Scan langsung butuh HTTPS. Buka aplikasi lewat HTTPS atau gunakan tombol Galeri.', 'warning');
+            notify('Scan langsung butuh HTTPS. Buka aplikasi lewat HTTPS atau input barcode manual.', 'warning');
             return;
         }
 
         if (liveCameraLikelyBlocked) {
-            notify('Live camera di HP kemungkinan diblok browser pada alamat ini. Pakai tombol Galeri atau buka lewat HTTPS/IP laptop.', 'warning');
+            notify('Live camera di HP kemungkinan diblok browser pada alamat ini. Buka lewat HTTPS/IP laptop atau input barcode manual.', 'warning');
         }
 
         await stopCameraScanner();
@@ -923,7 +857,7 @@ document.addEventListener('DOMContentLoaded', function () {
             } else if (errorName === 'NotReadableError') {
                 notify('Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera lalu coba lagi.', 'error');
             } else {
-                notify('Scan langsung belum berhasil. Coba dekatkan barcode atau gunakan Galeri sebagai cadangan.', 'error');
+                notify('Scan langsung belum berhasil. Coba dekatkan barcode atau lanjutkan dengan input barcode manual.', 'error');
             }
             await stopCameraScanner();
         }
@@ -1096,12 +1030,12 @@ document.addEventListener('DOMContentLoaded', function () {
     window.startAdminBarcodeScanner = startCameraScanner;
     openCameraButtons.forEach((button) => button?.addEventListener('click', function () {
         if (! canUseDirectCamera) {
-            notify('Scan langsung belum bisa dipakai di HTTP. Gunakan HTTPS atau pilih Galeri.', 'warning');
+            notify('Scan langsung belum bisa dipakai di HTTP. Gunakan HTTPS atau input barcode manual.', 'warning');
             return;
         }
 
         if (liveCameraLikelyBlocked) {
-            notify('Jika kamera gagal dibuka pada alamat ini, gunakan tombol Galeri sebagai cadangan.', 'warning');
+            notify('Jika kamera gagal dibuka pada alamat ini, lanjutkan dengan input barcode manual.', 'warning');
         }
 
         startCameraScanner();

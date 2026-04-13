@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
@@ -39,11 +38,18 @@ class AdminDashboardController extends Controller
         $stats = [
             'total_medicines' => Medicine::query()->count(),
             'active_medicines' => Medicine::query()->where('is_active', true)->count(),
-            'low_stock_medicines' => Medicine::query()->where('stock', '<=', 10)->count(),
+            'low_stock_medicines' => Medicine::query()
+                ->where('stock', '>', 0)
+                ->where('stock', '<=', 10)
+                ->count(),
             'expiring_soon_medicines' => Medicine::query()
                 ->whereNotNull('expiry_date')
                 ->whereDate('expiry_date', '>=', $today)
                 ->whereDate('expiry_date', '<=', $thirtyDaysAhead)
+                ->count(),
+            'expired_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '<', $today)
                 ->count(),
             'today_purchase_entries' => MedicinePurchaseLog::query()
                 ->whereDate('purchased_at', $today)
@@ -65,8 +71,24 @@ class AdminDashboardController extends Controller
 
         $expiringAlertMedicines = Medicine::query()
             ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', $today)
             ->whereDate('expiry_date', '<=', $thirtyDaysAhead)
             ->orderBy('expiry_date')
+            ->orderBy('name')
+            ->limit(12)
+            ->get([
+                'id',
+                'name',
+                'trade_name',
+                'stock',
+                'unit',
+                'expiry_date',
+            ]);
+
+        $lowStockAlertMedicines = Medicine::query()
+            ->where('stock', '>', 0)
+            ->where('stock', '<=', 10)
+            ->orderBy('stock')
             ->orderBy('name')
             ->limit(12)
             ->get([
@@ -102,6 +124,7 @@ class AdminDashboardController extends Controller
 
         return view('ui.admin-dashboard', [
             'stats' => $stats,
+            'lowStockAlertMedicines' => $lowStockAlertMedicines,
             'expiringAlertMedicines' => $expiringAlertMedicines,
             'recentMedicines' => $recentMedicines,
             'recentPurchaseLogs' => $recentPurchaseLogs,
@@ -309,7 +332,7 @@ class AdminDashboardController extends Controller
         $this->normalizeFormattedNumericInputs($request, ['stock'], ['buy_price', 'sell_price']);
 
         $validated = $request->validate([
-            'barcode' => ['nullable', 'string', 'max:120', 'unique:medicines,barcode'],
+            'barcode' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'trade_name' => ['nullable', 'string', 'max:255'],
             'dosage' => ['nullable', 'string', 'max:120'],
@@ -320,7 +343,7 @@ class AdminDashboardController extends Controller
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'expiry_date' => ['required', 'date'],
             'unit' => ['required', 'string', 'max:30'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama obat wajib diisi.',
@@ -328,20 +351,21 @@ class AdminDashboardController extends Controller
             'buy_price.required' => 'Harga beli wajib diisi.',
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
             'expiry_date.required' => 'Tanggal kadaluarsa wajib diisi.',
-            'photo.mimes' => 'Format foto belum didukung. Gunakan JPG, PNG, WEBP, HEIC, HEIF, atau AVIF.',
-            'photo.max' => 'Ukuran foto maksimal 5 MB.',
+            'photo.mimetypes' => 'File foto harus berupa gambar yang valid.',
+            'photo.max' => 'Ukuran foto maksimal 100 MB.',
         ]);
 
         $photoPath = $request->hasFile('photo')
             ? $request->file('photo')->store('medicines/photos', 'public')
             : null;
 
-        $createdMedicine = null;
+        $storedMedicine = null;
 
-        DB::transaction(function () use ($request, $validated, $photoPath, &$createdMedicine): void {
+        DB::transaction(function () use ($request, $validated, $photoPath, &$storedMedicine): void {
+            $barcode = trim((string) ($validated['barcode'] ?? ''));
             $medicinePayload = [
                 'name' => $validated['name'],
-                'barcode' => $validated['barcode'] ?? null,
+                'barcode' => $barcode !== '' ? $barcode : null,
                 'trade_name' => $validated['trade_name'] ?? null,
                 'dosage' => $validated['dosage'] ?? null,
                 'category' => $validated['category'] ?? null,
@@ -359,10 +383,10 @@ class AdminDashboardController extends Controller
                 $medicinePayload['entry_source'] = Medicine::ENTRY_SOURCE_MANUAL;
             }
 
-            $createdMedicine = Medicine::query()->create($medicinePayload);
+            $storedMedicine = Medicine::query()->create($medicinePayload);
 
             MedicinePurchaseLog::query()->create([
-                'medicine_id' => $createdMedicine->id,
+                'medicine_id' => $storedMedicine->id,
                 'created_by' => $request->user()->id,
                 'quantity' => (int) $validated['stock'],
                 'buy_price' => (float) $validated['buy_price'],
@@ -379,7 +403,7 @@ class AdminDashboardController extends Controller
             'admin.master_obat',
             'create',
             'Admin menambahkan obat baru ke master.',
-            $createdMedicine,
+            $storedMedicine,
             [
                 'medicine_name' => $validated['name'],
                 'barcode' => $validated['barcode'] ?? null,
@@ -416,7 +440,7 @@ class AdminDashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'barcode' => ['nullable', 'string', 'max:120', Rule::unique('medicines', 'barcode')->ignore($medicine->id)],
+            'barcode' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'trade_name' => ['nullable', 'string', 'max:255'],
             'dosage' => ['nullable', 'string', 'max:120'],
@@ -427,7 +451,7 @@ class AdminDashboardController extends Controller
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'expiry_date' => ['required', 'date'],
             'unit' => ['required', 'string', 'max:30'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
@@ -661,7 +685,7 @@ class AdminDashboardController extends Controller
             'purchase_source' => ['required', 'string', 'max:255'],
             'expiry_date' => ['required', 'date'],
             'purchased_at' => ['nullable', 'date'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ], [
             'medicine_id.required' => 'Obat wajib dipilih.',
@@ -669,8 +693,8 @@ class AdminDashboardController extends Controller
             'buy_price.required' => 'Harga beli wajib diisi.',
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
             'expiry_date.required' => 'Tanggal kadaluarsa wajib diisi.',
-            'photo.mimes' => 'Format foto belum didukung. Gunakan JPG, PNG, WEBP, HEIC, HEIF, atau AVIF.',
-            'photo.max' => 'Ukuran foto maksimal 5 MB.',
+            'photo.mimetypes' => 'File foto harus berupa gambar yang valid.',
+            'photo.max' => 'Ukuran foto maksimal 100 MB.',
         ]);
 
         $photoPath = $request->hasFile('photo')
@@ -725,15 +749,15 @@ class AdminDashboardController extends Controller
             'purchase_source' => ['required', 'string', 'max:255'],
             'expiry_date' => ['required', 'date'],
             'purchased_at' => ['nullable', 'date'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ], [
             'quantity.required' => 'Jumlah pembelian wajib diisi.',
             'buy_price.required' => 'Harga beli wajib diisi.',
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
             'expiry_date.required' => 'Tanggal kadaluarsa wajib diisi.',
-            'photo.mimes' => 'Format foto belum didukung. Gunakan JPG, PNG, WEBP, HEIC, HEIF, atau AVIF.',
-            'photo.max' => 'Ukuran foto maksimal 5 MB.',
+            'photo.mimetypes' => 'File foto harus berupa gambar yang valid.',
+            'photo.max' => 'Ukuran foto maksimal 100 MB.',
         ]);
 
         $photoPath = $purchaseLog->photo_path;

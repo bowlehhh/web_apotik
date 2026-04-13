@@ -109,7 +109,18 @@
                             </td>
                             <td class="px-3 py-3 font-semibold text-slate-700">{{ $medicine->stock }} {{ $medicine->unit }}</td>
                             <td class="px-3 py-3 text-slate-700">Rp {{ number_format((float) $medicine->buy_price, 0, ',', '.') }}</td>
-                            <td class="px-3 py-3 text-slate-700">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</td>
+                            @php
+                                $inventoryDaysLeft = $medicine->expiry_date
+                                    ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                                    : null;
+                                $inventoryExpiryClass = 'text-slate-700';
+                                if ($inventoryDaysLeft !== null && $inventoryDaysLeft < 0) {
+                                    $inventoryExpiryClass = 'text-red-600 font-bold';
+                                } elseif ($inventoryDaysLeft !== null && $inventoryDaysLeft <= 30) {
+                                    $inventoryExpiryClass = 'text-amber-600 font-bold';
+                                }
+                            @endphp
+                            <td class="px-3 py-3 {{ $inventoryExpiryClass }}">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</td>
                             <td class="px-3 py-3">
                                 @if ($medicine->photo_path)
                                     <img src="{{ Storage::url($medicine->photo_path) }}" alt="{{ $medicine->name }}" class="w-12 h-12 rounded-lg object-cover border border-slate-200" />
@@ -240,7 +251,18 @@
                             @endif
                             <td class="px-3 py-3 text-slate-700 font-semibold">{{ $medicine->stock }} {{ $medicine->unit }}</td>
                             <td class="px-3 py-3 text-slate-700">Rp {{ number_format((float) $medicine->buy_price, 0, ',', '.') }}</td>
-                            <td class="px-3 py-3 text-slate-700">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</td>
+                            @php
+                                $masterDaysLeft = $medicine->expiry_date
+                                    ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                                    : null;
+                                $masterExpiryClass = 'text-slate-700';
+                                if ($masterDaysLeft !== null && $masterDaysLeft < 0) {
+                                    $masterExpiryClass = 'text-red-600 font-bold';
+                                } elseif ($masterDaysLeft !== null && $masterDaysLeft <= 30) {
+                                    $masterExpiryClass = 'text-amber-600 font-bold';
+                                }
+                            @endphp
+                            <td class="px-3 py-3 {{ $masterExpiryClass }}">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</td>
                             <td class="px-3 py-3">
                                 <details class="group">
                                     <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
@@ -331,6 +353,7 @@
         <table class="w-full text-left text-sm">
             <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <tr>
+                    <th class="px-4 py-3">ID Pembelian</th>
                     <th class="px-4 py-3">Waktu</th>
                     <th class="px-3 py-3">Obat</th>
                     <th class="px-3 py-3">Jumlah</th>
@@ -346,6 +369,7 @@
             <tbody class="divide-y divide-slate-100">
                 @forelse ($purchaseLogs as $log)
                     <tr class="align-top">
+                        <td class="px-4 py-3 text-slate-700 font-semibold">#{{ $log->id }}</td>
                         <td class="px-4 py-3 text-slate-700">{{ optional($log->purchased_at)->format('d M Y H:i') }}</td>
                         <td class="px-3 py-3">
                             <p class="font-bold text-slate-800">{{ $log->medicine?->name ?? '-' }}</p>
@@ -355,7 +379,18 @@
                         <td class="px-3 py-3 text-slate-700">Rp {{ number_format((float) $log->buy_price, 0, ',', '.') }}</td>
                         <td class="px-3 py-3 font-semibold text-slate-800">Rp {{ number_format((float) $log->quantity * (float) $log->buy_price, 0, ',', '.') }}</td>
                         <td class="px-3 py-3 text-slate-700">{{ $log->purchase_source ?: '-' }}</td>
-                        <td class="px-3 py-3 text-slate-700">{{ optional($log->expiry_date)->format('d M Y') ?: '-' }}</td>
+                        @php
+                            $purchaseDaysLeft = $log->expiry_date
+                                ? now()->startOfDay()->diffInDays($log->expiry_date->copy()->startOfDay(), false)
+                                : null;
+                            $purchaseExpiryClass = 'text-slate-700';
+                            if ($purchaseDaysLeft !== null && $purchaseDaysLeft < 0) {
+                                $purchaseExpiryClass = 'text-red-600 font-bold';
+                            } elseif ($purchaseDaysLeft !== null && $purchaseDaysLeft <= 30) {
+                                $purchaseExpiryClass = 'text-amber-600 font-bold';
+                            }
+                        @endphp
+                        <td class="px-3 py-3 {{ $purchaseExpiryClass }}">{{ optional($log->expiry_date)->format('d M Y') ?: '-' }}</td>
                         <td class="px-3 py-3">
                             @if ($log->photo_path)
                                 <a href="{{ Storage::url($log->photo_path) }}" target="_blank" class="inline-block">
@@ -397,7 +432,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-slate-500">Belum ada riwayat pembelian gudang.</td>
+                        <td colspan="11" class="px-4 py-8 text-center text-slate-500">Belum ada riwayat pembelian gudang.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -125,7 +125,15 @@
                         <input type="text" name="name" value="{{ old('name') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Nama obat" required />
                         <input type="text" name="trade_name" value="{{ old('trade_name') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Merek dagang" />
                         <input type="text" name="dosage" value="{{ old('dosage') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Dosis (contoh: 500 mg)" />
-                        <input type="text" name="category" value="{{ old('category') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Kategori" />
+                        <select name="category" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                            <option value="">Pilih kategori obat</option>
+                            <option value="Obat Keras" @selected(old('category') === 'Obat Keras')>Obat Keras</option>
+                            <option value="Obat Tidak Keras" @selected(old('category') === 'Obat Tidak Keras')>Obat Tidak Keras</option>
+                            <option value="Obat Bebas" @selected(old('category') === 'Obat Bebas')>Obat Bebas</option>
+                            <option value="Obat Bebas Terbatas" @selected(old('category') === 'Obat Bebas Terbatas')>Obat Bebas Terbatas</option>
+                            <option value="Antibiotik" @selected(old('category') === 'Antibiotik')>Antibiotik</option>
+                            <option value="Vitamin" @selected(old('category') === 'Vitamin')>Vitamin</option>
+                        </select>
                         <input type="text" name="barcode" value="{{ old('barcode') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Barcode (opsional)" />
                         <input type="text" name="unit" value="{{ old('unit') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Satuan (tablet, kapsul, pcs)" required />
                         <input type="text" inputmode="numeric" name="stock" value="{{ old('stock') }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Stok awal" required />

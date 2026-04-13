@@ -86,84 +86,146 @@
         </button>
     </form>
 
-    <div class="space-y-4">
+    <div class="space-y-3">
         @forelse ($medicines as $medicine)
             @php
                 $latestPurchaseLog = $medicine->purchaseLogs->first();
+                $daysLeft = $medicine->expiry_date
+                    ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                    : null;
+                $isExpired = $daysLeft !== null && $daysLeft < 0;
+                $isExpiringSoon = $daysLeft !== null && $daysLeft >= 0 && $daysLeft <= 30;
+                $expBadgeClass = 'bg-emerald-100 text-emerald-800';
+                $expPrefix = 'Belum Exp:';
+                if ($isExpired) {
+                    $expBadgeClass = 'bg-red-100 text-red-700';
+                    $expPrefix = 'Sudah Exp:';
+                } elseif ($isExpiringSoon) {
+                    $expBadgeClass = 'bg-amber-100 text-amber-700';
+                    $expPrefix = 'Mau Exp:';
+                }
             @endphp
-            <article class="rounded-[2rem] border border-slate-100 bg-slate-50/70 p-5">
-                <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div class="flex items-start gap-4">
+            <article class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-start gap-3">
                         @if ($medicine->photo_path)
-                            <img src="{{ Storage::url($medicine->photo_path) }}" alt="{{ $medicine->name }}" class="w-16 h-16 rounded-2xl object-cover border border-slate-200" />
+                            <img src="{{ Storage::url($medicine->photo_path) }}" alt="{{ $medicine->name }}" class="h-12 w-12 rounded-xl object-cover border border-slate-200" />
                         @else
-                            <div class="w-16 h-16 rounded-2xl bg-white text-slate-500 flex items-center justify-center border border-slate-200">
-                                <span class="material-symbols-outlined">medication</span>
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                                <span class="material-symbols-outlined text-[20px]">medication</span>
                             </div>
                         @endif
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-lg">{{ $medicine->name }}</h4>
-                            <p class="text-sm text-slate-500">Merek dagang: {{ $medicine->trade_name ?: '-' }}</p>
-                            <p class="text-sm text-slate-500">Dosis: {{ $medicine->dosage ?: '-' }} | Kategori: {{ $medicine->category ?: '-' }}</p>
-                            <p class="text-sm text-slate-500">Barcode: {{ $medicine->barcode ?: '-' }} | Harga beli: Rp {{ number_format((float) $medicine->buy_price, 0, ',', '.') }}</p>
+                        <div class="min-w-0">
+                            <button
+                                type="button"
+                                data-open-medicine-modal="{{ $medicine->id }}"
+                                class="truncate text-left text-base font-bold text-blue-800 hover:text-blue-900 hover:underline"
+                            >
+                                {{ $medicine->name }}
+                            </button>
+                            <p class="truncate text-xs text-slate-500">
+                                {{ $medicine->trade_name ?: '-' }} | {{ $medicine->dosage ?: '-' }} | {{ $medicine->category ?: '-' }}
+                            </p>
+                            <p class="truncate text-xs text-slate-500">
+                                Barcode: {{ $medicine->barcode ?: '-' }} | Stok: {{ $medicine->stock }} {{ $medicine->unit }}
+                            </p>
+                            <p class="truncate text-xs text-slate-500">
+                                <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold {{ $expBadgeClass }}">
+                                    {{ $expPrefix }} {{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         @if (($hasEntrySourceColumn ?? false) === true)
-                            <span class="px-3 py-1 rounded-full text-[10px] font-bold {{ $medicine->entry_source === 'barcode' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800' }}">
+                            <span class="rounded-full px-3 py-1 text-[10px] font-bold {{ $medicine->entry_source === 'barcode' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800' }}">
                                 {{ $medicine->entrySourceLabel() }}
                             </span>
                         @endif
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold {{ $medicine->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">
+                        <span class="rounded-full px-3 py-1 text-[10px] font-bold {{ $medicine->is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }}">
                             {{ $medicine->is_active ? 'AKTIF' : 'NONAKTIF' }}
                         </span>
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold {{ $medicine->stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' }}">
-                            {{ $medicine->stock > 0 ? 'READY' : 'HABIS' }}
-                        </span>
+                        @if ($isExpired)
+                            <span class="rounded-full px-3 py-1 text-[10px] font-bold bg-red-100 text-red-700">
+                                SUDAH EXP
+                            </span>
+                        @elseif ($isExpiringSoon)
+                            <span class="rounded-full px-3 py-1 text-[10px] font-bold bg-amber-100 text-amber-700">
+                                EXP {{ $daysLeft }} HARI
+                            </span>
+                        @endif
+                        <button
+                            type="button"
+                            data-open-medicine-modal="{{ $medicine->id }}"
+                            class="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-container transition-colors"
+                        >
+                            Edit
+                        </button>
                     </div>
                 </div>
-
-                <form method="POST" action="{{ route('admin.medicines.update', $medicine) }}" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-                    @csrf
-                    @method('PATCH')
-                    <input type="text" name="name" value="{{ $medicine->name }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" placeholder="Nama obat" required />
-                    <input type="text" name="trade_name" value="{{ $medicine->trade_name }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Merek dagang" />
-                    <input type="text" name="dosage" value="{{ $medicine->dosage }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Dosis" />
-                    <input type="text" name="category" value="{{ $medicine->category }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Kategori" />
-                    <input type="text" inputmode="numeric" name="stock" value="{{ $medicine->stock }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Stok" required />
-
-                    <input type="text" name="barcode" value="{{ $medicine->barcode }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" placeholder="Barcode" />
-                    <input type="text" name="unit" value="{{ $medicine->unit }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Satuan" required />
-                    <input type="text" inputmode="numeric" name="buy_price" value="{{ number_format((float) $medicine->buy_price, 0, ',', '.') }}" data-currency-input class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Harga beli" required />
-                    <input type="text" inputmode="numeric" name="sell_price" value="{{ number_format((float) $medicine->sell_price, 0, ',', '.') }}" data-currency-input class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Harga jual" />
-                    <div>
-                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Tanggal Kadaluarsa</label>
-                        <input type="date" name="expiry_date" value="{{ optional($medicine->expiry_date)->format('Y-m-d') }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" required />
-                    </div>
-                    <div class="xl:col-span-2">
-                        <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Outlet / Tempat Beli</label>
-                        <input type="text" name="purchase_source" value="{{ old('purchase_source', $latestPurchaseLog?->purchase_source) }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Outlet / tempat beli obat" required />
-                    </div>
-
-                    <input type="file" name="photo" accept="image/*" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" />
-                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                        <input type="hidden" name="is_active" value="0" />
-                        <input type="checkbox" name="is_active" value="1" {{ $medicine->is_active ? 'checked' : '' }} class="rounded border-slate-300" />
-                        Obat aktif
-                    </label>
-                    <button type="submit" class="rounded-xl bg-primary text-white text-sm font-bold px-4 py-3 hover:bg-primary-container transition-colors xl:col-span-2">
-                        Update Obat
-                    </button>
-                </form>
-
-                <form method="POST" action="{{ route('admin.medicines.destroy', $medicine) }}" class="mt-3" onsubmit="return confirm('Yakin ingin menghapus/nonaktifkan obat ini?')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="rounded-xl bg-red-50 text-red-700 text-sm font-bold px-4 py-3 hover:bg-red-100 transition-colors">
-                        Hapus / Nonaktifkan
-                    </button>
-                </form>
             </article>
+
+            <div id="medicine-modal-{{ $medicine->id }}" data-medicine-modal class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/50 p-3 sm:p-6">
+                <div class="w-full max-w-5xl rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl">
+                    <div class="flex items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-widest text-slate-500">Edit Master Obat</p>
+                            <h4 class="text-lg font-extrabold text-blue-900">{{ $medicine->name }}</h4>
+                        </div>
+                        <button
+                            type="button"
+                            data-close-medicine-modal="{{ $medicine->id }}"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                            aria-label="Tutup popup edit"
+                        >
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                    </div>
+
+                    <div class="max-h-[78vh] overflow-y-auto px-5 py-5 sm:px-6">
+                        <form method="POST" action="{{ route('admin.medicines.update', $medicine) }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+                            @csrf
+                            @method('PATCH')
+                            <input type="text" name="name" value="{{ $medicine->name }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" placeholder="Nama obat" required />
+                            <input type="text" name="trade_name" value="{{ $medicine->trade_name }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Merek dagang" />
+                            <input type="text" name="dosage" value="{{ $medicine->dosage }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Dosis" />
+                            <input type="text" name="category" value="{{ $medicine->category }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Kategori" />
+                            <input type="text" inputmode="numeric" name="stock" value="{{ $medicine->stock }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Stok" required />
+
+                            <input type="text" name="barcode" value="{{ $medicine->barcode }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" placeholder="Barcode" />
+                            <input type="text" name="unit" value="{{ $medicine->unit }}" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Satuan" required />
+                            <input type="text" inputmode="numeric" name="buy_price" value="{{ number_format((float) $medicine->buy_price, 0, ',', '.') }}" data-currency-input class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Harga beli" required />
+                            <input type="text" inputmode="numeric" name="sell_price" value="{{ number_format((float) $medicine->sell_price, 0, ',', '.') }}" data-currency-input class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Harga jual" />
+                            <div>
+                                <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Tanggal Kadaluarsa</label>
+                                <input type="date" name="expiry_date" value="{{ optional($medicine->expiry_date)->format('Y-m-d') }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" required />
+                            </div>
+                            <div class="xl:col-span-2">
+                                <label class="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">Outlet / Tempat Beli</label>
+                                <input type="text" name="purchase_source" value="{{ old('purchase_source', $latestPurchaseLog?->purchase_source) }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm" placeholder="Outlet / tempat beli obat" required />
+                            </div>
+
+                            <input type="file" name="photo" accept="image/*" class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm xl:col-span-2" />
+                            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                                <input type="hidden" name="is_active" value="0" />
+                                <input type="checkbox" name="is_active" value="1" {{ $medicine->is_active ? 'checked' : '' }} class="rounded border-slate-300" />
+                                Obat aktif
+                            </label>
+                            <button type="submit" class="rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-container xl:col-span-2">
+                                Simpan Perubahan
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('admin.medicines.destroy', $medicine) }}" class="mt-3" onsubmit="return confirm('Yakin ingin menghapus/nonaktifkan obat ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-100">
+                                Hapus / Nonaktifkan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         @empty
             <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
                 <p class="text-sm text-slate-500">Belum ada data obat pada master.</p>
@@ -175,4 +237,61 @@
         {{ $medicines->links() }}
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const body = document.body;
+
+        const closeModal = function (modal) {
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            if (!document.querySelector('[data-medicine-modal].flex')) {
+                body.classList.remove('overflow-hidden');
+            }
+        };
+
+        document.querySelectorAll('[data-open-medicine-modal]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const modalId = this.getAttribute('data-open-medicine-modal');
+                const modal = document.getElementById('medicine-modal-' + modalId);
+                if (!modal) {
+                    return;
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                body.classList.add('overflow-hidden');
+            });
+        });
+
+        document.querySelectorAll('[data-close-medicine-modal]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const modalId = this.getAttribute('data-close-medicine-modal');
+                closeModal(document.getElementById('medicine-modal-' + modalId));
+            });
+        });
+
+        document.querySelectorAll('[data-medicine-modal]').forEach(function (modal) {
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    closeModal(modal);
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            const openedModal = document.querySelector('[data-medicine-modal].flex');
+            closeModal(openedModal);
+        });
+    });
+</script>
 @endsection

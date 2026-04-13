@@ -20,7 +20,9 @@ class KasirDashboardController extends Controller
 {
     public function dashboard(Request $request): View
     {
-        $today = now()->toDateString();
+        $now = now();
+        $today = $now->toDateString();
+        $thirtyDaysAhead = $now->copy()->addDays(30)->toDateString();
 
         $todaySalesBaseQuery = Sale::query()->whereDate('sold_at', $today);
         $todayPrescriptionBaseQuery = Sale::query()
@@ -40,6 +42,26 @@ class KasirDashboardController extends Controller
             'today_prescription_sales' => (clone $todayPrescriptionBaseQuery)->count(),
             'today_non_prescription_sales' => (clone $todayNonPrescriptionBaseQuery)->count(),
             'today_non_prescription_revenue' => (float) ((clone $todayNonPrescriptionBaseQuery)->sum('total_amount') ?? 0),
+            'month_total_revenue' => (float) Sale::query()
+                ->whereYear('sold_at', $now->year)
+                ->whereMonth('sold_at', $now->month)
+                ->sum('total_amount'),
+            'year_total_revenue' => (float) Sale::query()
+                ->whereYear('sold_at', $now->year)
+                ->sum('total_amount'),
+            'low_stock_medicines' => Medicine::query()
+                ->where('stock', '>', 0)
+                ->where('stock', '<=', 10)
+                ->count(),
+            'expired_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '<', $today)
+                ->count(),
+            'expiring_soon_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '>=', $today)
+                ->whereDate('expiry_date', '<=', $thirtyDaysAhead)
+                ->count(),
         ];
 
         $pendingPrescriptions = $this->prescriptionsQuery()
@@ -73,7 +95,17 @@ class KasirDashboardController extends Controller
             ->get();
 
         $lowStockMedicines = Medicine::query()
+            ->where('stock', '<=', 10)
             ->orderBy('stock')
+            ->orderBy('name')
+            ->limit(10)
+            ->get();
+
+        $expiringAlertMedicines = Medicine::query()
+            ->whereNotNull('expiry_date')
+            ->whereDate('expiry_date', '>=', $today)
+            ->whereDate('expiry_date', '<=', $thirtyDaysAhead)
+            ->orderBy('expiry_date')
             ->orderBy('name')
             ->limit(10)
             ->get();
@@ -85,6 +117,7 @@ class KasirDashboardController extends Controller
             'recentNonPrescriptionSales' => $recentNonPrescriptionSales,
             'topNonPrescriptionMedicinesToday' => $topNonPrescriptionMedicinesToday,
             'lowStockMedicines' => $lowStockMedicines,
+            'expiringAlertMedicines' => $expiringAlertMedicines,
             'cashier' => $request->user(),
         ]);
     }
@@ -92,6 +125,7 @@ class KasirDashboardController extends Controller
     public function transactions(Request $request): View
     {
         $historyFilters = $this->resolveSalesHistoryFilters($request);
+        $selectedPrescriptionId = (int) $request->query('prescription_id', 0);
 
         $medicines = $this->medicinesQuery()
             ->where('is_active', true)
@@ -100,6 +134,9 @@ class KasirDashboardController extends Controller
         $pendingPrescriptions = $this->prescriptionsQuery()
             ->where('is_dispensed', false)
             ->get();
+        $selectedPrescription = $selectedPrescriptionId > 0
+            ? $pendingPrescriptions->firstWhere('id', $selectedPrescriptionId)
+            : null;
 
         $salesHistoryQuery = $this->filteredSalesHistoryQuery($historyFilters);
         $salesSummaryQuery = clone $salesHistoryQuery;
@@ -117,6 +154,7 @@ class KasirDashboardController extends Controller
         return view('ui.kasir.transactions', [
             'medicines' => $medicines,
             'pendingPrescriptions' => $pendingPrescriptions,
+            'selectedPrescription' => $selectedPrescription,
             'recentSales' => $recentSales,
             'historyFilters' => $historyFilters,
             'historySummary' => $historySummary,
@@ -127,20 +165,79 @@ class KasirDashboardController extends Controller
 
     public function medicines(Request $request): View
     {
-        $medicines = $this->medicinesQuery()->get();
+        $search = trim((string) $request->query('q', ''));
+        $status = (string) $request->query('status', 'all');
+        $today = now()->toDateString();
+        $expiringUntil = now()->addDays(30)->toDateString();
+
+        $medicines = $this->medicinesQuery()
+            ->when($search !== '', function (Builder $builder) use ($search): void {
+                $builder->where(function (Builder $query) use ($search): void {
+                    $query
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('trade_name', 'like', "%{$search}%")
+                        ->orWhere('dosage', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%")
+                        ->orWhere('barcode', 'like', "%{$search}%");
+                });
+            })
+            ->when($status === 'ready', function (Builder $builder): void {
+                $builder->where('stock', '>', 0);
+            })
+            ->when($status === 'not_ready', function (Builder $builder): void {
+                $builder->where('stock', '<=', 0);
+            })
+            ->when($status === 'low_stock', function (Builder $builder): void {
+                $builder->where('stock', '>', 0)->where('stock', '<=', 10);
+            })
+            ->when($status === 'expiring', function (Builder $builder) use ($today, $expiringUntil): void {
+                $builder->whereNotNull('expiry_date')
+                    ->whereDate('expiry_date', '>=', $today)
+                    ->whereDate('expiry_date', '<=', $expiringUntil);
+            })
+            ->when($status === 'expired', function (Builder $builder) use ($today): void {
+                $builder->whereNotNull('expiry_date')->whereDate('expiry_date', '<', $today);
+            })
+            ->get();
 
         $stats = [
-            'total_medicines' => $medicines->count(),
-            'active_medicines' => $medicines->where('is_active', true)->count(),
-            'ready_medicines' => $medicines->where('stock', '>', 0)->count(),
-            'not_ready_medicines' => $medicines->where('stock', '<=', 0)->count(),
+            'total_medicines' => Medicine::query()->count(),
+            'active_medicines' => Medicine::query()->where('is_active', true)->count(),
+            'ready_medicines' => Medicine::query()->where('stock', '>', 0)->count(),
+            'not_ready_medicines' => Medicine::query()->where('stock', '<=', 0)->count(),
+            'low_stock_medicines' => Medicine::query()->where('stock', '>', 0)->where('stock', '<=', 10)->count(),
+            'expiring_soon_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '>=', $today)
+                ->whereDate('expiry_date', '<=', $expiringUntil)
+                ->count(),
+            'expired_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '<', $today)
+                ->count(),
         ];
 
         return view('ui.kasir.medicines', [
             'medicines' => $medicines,
             'stats' => $stats,
+            'filters' => [
+                'q' => $search,
+                'status' => $status,
+            ],
             'cashier' => $request->user(),
         ]);
+    }
+
+    public function storeTransaction(Request $request): RedirectResponse
+    {
+        $prescriptionId = (int) $request->input('prescription_id', 0);
+        if ($prescriptionId > 0) {
+            $prescription = Prescription::query()->findOrFail($prescriptionId);
+
+            return $this->dispensePrescription($request, $prescription);
+        }
+
+        return $this->storeNonPrescriptionSale($request);
     }
 
     public function storeNonPrescriptionSale(Request $request): RedirectResponse
@@ -246,6 +343,10 @@ class KasirDashboardController extends Controller
         $validated = $request->validate([
             'notes' => ['nullable', 'string', 'max:2000'],
             'markup_amount' => ['nullable', 'numeric', 'min:0'],
+            'unit_prices' => ['nullable', 'array'],
+            'unit_prices.*' => ['nullable', 'numeric', 'min:0'],
+            'confirm_items' => ['nullable', 'array'],
+            'confirm_items.*' => ['nullable', 'accepted'],
         ]);
 
         $dispensedPrescription = null;
@@ -278,8 +379,11 @@ class KasirDashboardController extends Controller
             $totalItems = $items->sum('quantity');
             $totalAmount = 0;
             $markupAmount = (float) ($validated['markup_amount'] ?? 0);
-            $priceNote = "Markup kasir per item: Rp ".number_format($markupAmount, 0, ',', '.');
-            $notes = trim(($validated['notes'] ?? $lockedPrescription->notes ?? '')."\n".$priceNote);
+            $notes = trim((string) ($validated['notes'] ?? $lockedPrescription->notes ?? ''));
+            if ($markupAmount > 0) {
+                $priceNote = "Markup kasir per item: Rp ".number_format($markupAmount, 0, ',', '.');
+                $notes = trim($notes."\n".$priceNote);
+            }
 
             $sale = Sale::query()->create([
                 'invoice_number' => $this->generateInvoiceNumber(),
@@ -298,12 +402,22 @@ class KasirDashboardController extends Controller
             $dispensedPrescription = $lockedPrescription;
 
             foreach ($items as $item) {
+                $isItemConfirmed = (bool) data_get($validated, "confirm_items.{$item->id}", false);
+                if (! $isItemConfirmed) {
+                    throw ValidationException::withMessages([
+                        "confirm_items.{$item->id}" => "Konfirmasi item {$item->medicine?->name} wajib dicentang sebelum diproses.",
+                    ]);
+                }
+
                 $buyPrice = (float) ($item->medicine?->buy_price ?? 0);
                 if ($buyPrice <= 0) {
                     $buyPrice = (float) ($item->medicine?->sell_price ?? 0);
                 }
 
-                $unitPrice = $buyPrice + $markupAmount;
+                $customUnitPrice = data_get($validated, "unit_prices.{$item->id}");
+                $unitPrice = $customUnitPrice !== null
+                    ? (float) $customUnitPrice
+                    : ($buyPrice + $markupAmount);
                 $lineTotal = $unitPrice * (int) $item->quantity;
                 $totalAmount += $lineTotal;
 
@@ -314,7 +428,7 @@ class KasirDashboardController extends Controller
                     'quantity' => (int) $item->quantity,
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
-                    'note' => $item->dosage_instructions.' | beli '.number_format($buyPrice, 0, ',', '.').' + markup '.number_format($markupAmount, 0, ',', '.'),
+                    'note' => $item->dosage_instructions.' | beli '.number_format($buyPrice, 0, ',', '.').' | harga kasir '.number_format($unitPrice, 0, ',', '.'),
                 ]);
             }
 

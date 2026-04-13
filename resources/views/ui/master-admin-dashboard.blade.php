@@ -14,7 +14,7 @@
 @endsection
 
 @section('master_content')
-    <section class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-6">
+    <section class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-8">
         <article class="rounded-[2rem] bg-white p-6 shadow-sm">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Barang Masuk</p>
             <h3 class="mt-1 text-2xl font-black text-blue-900">{{ number_format((int) ($masterStats['purchase_entries'] ?? 0)) }}</h3>
@@ -34,6 +34,16 @@
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Omzet Total</p>
             <h3 class="mt-1 text-2xl font-black text-indigo-700">Rp {{ number_format((float) ($masterStats['sales_total'] ?? 0), 0, ',', '.') }}</h3>
             <p class="mt-2 text-xs text-slate-500">Akumulasi nominal penjualan obat.</p>
+        </article>
+        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pemasukan Bulan Ini</p>
+            <h3 class="mt-1 text-2xl font-black text-emerald-700">Rp {{ number_format((float) ($masterStats['sales_month_total'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-2 text-xs text-slate-500">Total pemasukan pada bulan berjalan.</p>
+        </article>
+        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pemasukan Tahun Ini</p>
+            <h3 class="mt-1 text-2xl font-black text-sky-700">Rp {{ number_format((float) ($masterStats['sales_year_total'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-2 text-xs text-slate-500">Total pemasukan pada tahun berjalan.</p>
         </article>
         <article class="rounded-[2rem] bg-white p-6 shadow-sm">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Stok Rendah</p>
@@ -106,6 +116,32 @@
                     <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">User Nonaktif</p>
                     <h4 class="mt-1 text-2xl font-black text-rose-600">{{ number_format((int) ($masterStats['inactive_users'] ?? 0)) }}</h4>
                     <p class="mt-1 text-xs text-slate-500">Akun yang dinonaktifkan sementara.</p>
+                </div>
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700">Warning Stok Rendah</p>
+                    <h4 class="mt-1 text-2xl font-black text-amber-700">{{ number_format((int) ($masterStats['low_stock_medicines'] ?? 0)) }}</h4>
+                    <p class="mt-1 text-xs text-amber-800/90">Obat stok 1-10 butuh restock.</p>
+                    <a href="{{ route('master-admin.medicines.index', ['status' => 'low_stock']) }}" class="mt-3 inline-flex rounded-lg bg-amber-700 px-3 py-2 text-[11px] font-bold text-white hover:bg-amber-800 transition-colors">
+                        Buka Filter Stok Rendah
+                    </a>
+                </div>
+                <div class="rounded-2xl border border-red-200 bg-red-50 p-4">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-red-700">Warning Kadaluarsa</p>
+                    <h4 class="mt-1 text-2xl font-black text-red-700">
+                        {{ number_format((int) (($masterStats['expired_medicines'] ?? 0) + ($masterStats['expiring_soon_medicines'] ?? 0))) }}
+                    </h4>
+                    <p class="mt-1 text-xs text-red-800/90">
+                        Expired: {{ number_format((int) ($masterStats['expired_medicines'] ?? 0)) }} •
+                        Segera expired: {{ number_format((int) ($masterStats['expiring_soon_medicines'] ?? 0)) }}
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <a href="{{ route('master-admin.medicines.index', ['status' => 'expiring']) }}" class="inline-flex rounded-lg bg-red-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-red-700 transition-colors">
+                            Segera Expired
+                        </a>
+                        <a href="{{ route('master-admin.medicines.index', ['status' => 'expired']) }}" class="inline-flex rounded-lg border border-red-300 bg-white px-3 py-2 text-[11px] font-bold text-red-700 hover:bg-red-100 transition-colors">
+                            Sudah Expired
+                        </a>
+                    </div>
                 </div>
             </div>
         </article>

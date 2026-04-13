@@ -6,76 +6,205 @@
 
 @section('kasir_content')
 <section class="grid grid-cols-1 xl:grid-cols-12 gap-8">
-    <article class="xl:col-span-5 bg-white rounded-[2.5rem] p-8 shadow-sm">
+    <article id="transaksi-form" class="xl:col-span-5 bg-white rounded-[2.5rem] p-8 shadow-sm">
+        @php
+            $selectedFirstItem = $selectedPrescription?->items->first();
+            $selectedFirstMedicineId = $selectedFirstItem?->medicine_id;
+            $selectedFirstQuantity = (int) ($selectedFirstItem?->quantity ?? 1);
+            $selectedFirstBuyPrice = (float) ($selectedFirstItem?->medicine?->buy_price ?? 0);
+            if ($selectedFirstBuyPrice <= 0) {
+                $selectedFirstBuyPrice = (float) ($selectedFirstItem?->medicine?->sell_price ?? 0);
+            }
+            $selectedMedicineId = (int) old('medicine_id', $selectedFirstMedicineId);
+            $selectedMedicine = $selectedMedicineId > 0 ? $medicines->firstWhere('id', $selectedMedicineId) : null;
+            $selectedMedicineLabel = null;
+            if ($selectedMedicine) {
+                $selectedMedicineLabel = $selectedMedicine->name
+                    .' | Exp: '.(optional($selectedMedicine->expiry_date)->format('d M Y') ?: '-')
+                    .' | Kategori: '.($selectedMedicine->category ?: '-');
+            }
+        @endphp
         <div class="mb-6">
-            <h3 class="text-xl font-extrabold text-blue-900">Penjualan Tanpa Resep</h3>
-            <p class="text-sm text-slate-500">Kasir dapat menjual obat non resep dan stok otomatis berkurang.</p>
+            <h3 class="text-xl font-extrabold text-blue-900">Transaksi</h3>
+            <p class="text-sm text-slate-500">Satu form transaksi untuk non resep dan resep dokter. Klik resep untuk memuat data ke form ini.</p>
         </div>
 
-        <form method="POST" action="{{ route('kasir.sales.non-prescription.store') }}" class="space-y-4">
+        <form
+            method="POST"
+            action="{{ route('kasir.transactions.store') }}"
+            class="space-y-4"
+        >
             @csrf
-            <div class="grid grid-cols-1 lg:grid-cols-6 gap-4">
-                <div class="lg:col-span-3">
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Pilih Obat</label>
-                    <select id="medicine_id_select" name="medicine_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" required>
-                        <option value="">- Pilih obat -</option>
-                        @foreach ($medicines as $medicine)
-                            <option
-                                value="{{ $medicine->id }}"
-                                data-stock="{{ (int) $medicine->stock }}"
-                                data-buy="{{ (float) $medicine->buy_price }}"
-                            >
-                                {{ $medicine->name }}
-                            </option>
+            <input type="hidden" name="prescription_id" value="{{ $selectedPrescription?->id ?? '' }}" />
+            @if ($selectedPrescription)
+                <input type="hidden" name="markup_amount" value="0" />
+                <div class="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+                    <div class="mb-3">
+                        <p class="font-bold text-blue-900">{{ $selectedPrescription->patient?->name ?? '-' }}</p>
+                        <p class="text-xs text-slate-600">
+                            {{ $selectedPrescription->patient?->medical_record_number ?? '-' }} |
+                            Dokter: {{ $selectedPrescription->doctor?->name ?? '-' }} |
+                            {{ optional($selectedPrescription->prescribed_at)->format('d M Y H:i') }}
+                        </p>
+                    </div>
+                    <div class="space-y-1">
+                        @foreach ($selectedPrescription->items as $item)
+                            @php
+                                $autoUnitPrice = (float) ($item->medicine?->buy_price ?? 0);
+                                if ($autoUnitPrice <= 0) {
+                                    $autoUnitPrice = (float) ($item->medicine?->sell_price ?? 0);
+                                }
+                            @endphp
+                            <input type="hidden" name="confirm_items[{{ $item->id }}]" value="1" />
+                            <p class="text-xs text-slate-700">
+                                {{ $item->medicine?->name ?? '-' }} ({{ (int) $item->quantity }}) | beli: Rp {{ number_format((float) ($item->medicine?->buy_price ?? 0), 0, ',', '.') }}
+                            </p>
                         @endforeach
-                    </select>
+                    </div>
                 </div>
-                <div class="lg:col-span-3 min-w-0">
-                    <p class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Detail Obat</p>
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-3">
-                        <p id="medicine_summary_name" class="text-sm font-semibold text-slate-700 break-words">Belum pilih obat</p>
-                        <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 text-[11px]">
-                            <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
-                                <p class="text-slate-500 uppercase tracking-wide">Stok</p>
-                                <p id="medicine_summary_stock" class="font-bold text-slate-700 leading-tight break-words">-</p>
+            @endif
+            @if ($selectedPrescription)
+                <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Form Transaksi Resep (Per Obat)</p>
+                    @foreach ($selectedPrescription->items as $item)
+                        @php
+                            $editableUnitPrice = (float) ($item->medicine?->buy_price ?? 0);
+                            if ($editableUnitPrice <= 0) {
+                                $editableUnitPrice = (float) ($item->medicine?->sell_price ?? 0);
+                            }
+                        @endphp
+                        <div class="rounded-xl border border-slate-200 bg-white p-3" data-prescription-row data-qty="{{ (int) $item->quantity }}">
+                            <div class="mb-2">
+                                <p class="text-sm font-bold text-slate-800">{{ $item->medicine?->name ?? '-' }}</p>
+                                <p class="text-xs text-slate-500">Qty: {{ (int) $item->quantity }} | Aturan: {{ $item->dosage_instructions ?: '-' }}</p>
                             </div>
-                            <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
-                                <p class="text-slate-500 uppercase tracking-wide">Beli</p>
-                                <p id="medicine_summary_buy" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                            <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                <div>
+                                    <label class="mb-1 block text-[11px] font-bold uppercase tracking-widest text-slate-500">Harga Jual Item</label>
+                                    <input
+                                        type="text"
+                                        inputmode="numeric"
+                                        name="unit_prices[{{ $item->id }}]"
+                                        value="{{ old("unit_prices.{$item->id}", (int) round($editableUnitPrice)) }}"
+                                        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                                        data-prescription-unit-price
+                                        data-currency-input
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label class="mb-1 block text-[11px] font-bold uppercase tracking-widest text-slate-500">Subtotal Item</label>
+                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700" data-prescription-line-total>Rp 0</div>
+                                </div>
                             </div>
-                            <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
-                                <p class="text-slate-500 uppercase tracking-wide">Jual Dasar</p>
-                                <p id="medicine_summary_sell" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                        </div>
+                    @endforeach
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 px-3 py-3">
+                        <p class="text-xs font-bold uppercase tracking-widest text-blue-700">Subtotal Transaksi Resep</p>
+                        <p class="mt-1 text-xl font-black text-blue-900" id="prescription-subtotal-display">Rp 0</p>
+                    </div>
+                </div>
+            @else
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Cari & Pilih Obat</label>
+                        <input
+                            id="medicine_search_input"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                            placeholder="Ketik nama, barcode, kategori, atau exp..."
+                            value="{{ $selectedMedicineLabel }}"
+                            autocomplete="off"
+                        />
+                        <input id="medicine_id_input" type="hidden" name="medicine_id" value="{{ $selectedMedicineId > 0 ? $selectedMedicineId : '' }}" required />
+                        <div id="medicine_picker_list" class="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                            @foreach ($medicines as $medicine)
+                                @php
+                                    $expLabel = optional($medicine->expiry_date)->format('d M Y') ?: '-';
+                                    $daysLeft = $medicine->expiry_date
+                                        ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                                        : null;
+                                    $isExpired = $daysLeft !== null && $daysLeft < 0;
+                                    $isExpiringSoon = $daysLeft !== null && $daysLeft >= 0 && $daysLeft <= 30;
+                                    $expBadgeClass = 'bg-emerald-100 text-emerald-800';
+                                    $expPrefix = 'Belum Exp:';
+
+                                    if ($isExpired) {
+                                        $expBadgeClass = 'bg-amber-200 text-amber-900';
+                                        $expPrefix = 'Sudah Exp:';
+                                    } elseif ($isExpiringSoon) {
+                                        $expBadgeClass = 'bg-amber-100 text-amber-800';
+                                        $expPrefix = 'Mau Exp:';
+                                    }
+
+                                    $medicineLabel = $medicine->name.' | '.$expPrefix.' '.$expLabel.' | Kategori: '.($medicine->category ?: '-');
+                                @endphp
+                                <button
+                                    type="button"
+                                    data-medicine-picker-item
+                                    data-id="{{ $medicine->id }}"
+                                    data-name="{{ $medicine->name }}"
+                                    data-stock="{{ (int) $medicine->stock }}"
+                                    data-buy="{{ (float) $medicine->buy_price }}"
+                                    data-label="{{ $medicineLabel }}"
+                                    data-search="{{ strtolower(trim($medicine->name.' '.$medicine->barcode.' '.$medicine->category.' '.$expLabel)) }}"
+                                    class="w-full border-b border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none {{ $loop->last ? 'border-b-0' : '' }}"
+                                >
+                                    <span class="font-medium text-slate-800">{{ $medicine->name }}</span>
+                                    <span class="mx-1 text-slate-300">|</span>
+                                    <span class="inline-flex rounded px-2 py-0.5 text-xs font-bold {{ $expBadgeClass }}">{{ $expPrefix }} {{ $expLabel }}</span>
+                                    <span class="mx-1 text-slate-300">|</span>
+                                    <span class="text-slate-600">Kategori: {{ $medicine->category ?: '-' }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Detail Obat</p>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-3">
+                            <p id="medicine_summary_name" class="text-sm font-semibold text-slate-700 break-words">Belum pilih obat</p>
+                            <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 text-[11px]">
+                                <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
+                                    <p class="text-slate-500 uppercase tracking-wide">Stok</p>
+                                    <p id="medicine_summary_stock" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                                </div>
+                                <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
+                                    <p class="text-slate-500 uppercase tracking-wide">Beli</p>
+                                    <p id="medicine_summary_buy" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                                </div>
+                                <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
+                                    <p class="text-slate-500 uppercase tracking-wide">Jual Dasar</p>
+                                    <p id="medicine_summary_sell" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Jumlah</label>
-                    <input type="number" min="1" name="quantity" value="1" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" required />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Jumlah</label>
+                        <input type="number" min="1" name="quantity" value="{{ old('quantity', 1) }}" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Harga Jual Kasir</label>
+                        <input id="unit_price_input" type="text" inputmode="numeric" name="unit_price" value="{{ old('unit_price') }}" data-currency-input class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Wajib diisi" required />
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Harga Jual Kasir</label>
-                    <input id="unit_price_input" type="text" inputmode="numeric" name="unit_price" value="{{ old('unit_price') }}" data-currency-input class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Wajib diisi" required />
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 -mt-1">Harga dasar jual kosong dan hanya diisi dari input kasir.</p>
+                <p class="text-xs text-slate-500 -mt-1">Harga dasar jual kosong dan hanya diisi dari input kasir.</p>
+            @endif
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Nama Pasien/Pembeli (Opsional)</label>
-                <input type="text" name="patient_name" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Budi Santoso" />
+                <input type="text" name="patient_name" value="{{ old('patient_name', $selectedPrescription?->patient?->name ?? '') }}" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Contoh: Budi Santoso" />
             </div>
 
             <div>
                 <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Catatan</label>
-                <textarea name="notes" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Catatan transaksi (opsional)"></textarea>
+                <textarea name="notes" rows="3" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Catatan transaksi (opsional)">{{ old('notes') }}</textarea>
             </div>
 
             <button type="submit" class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-container transition-colors">
-                Simpan Transaksi Non Resep
+                {{ $selectedPrescription ? 'Simpan Transaksi Resep' : 'Simpan Transaksi' }}
             </button>
         </form>
     </article>
@@ -111,13 +240,9 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <form method="POST" action="{{ route('kasir.prescriptions.dispense', $prescription) }}" class="flex items-center gap-2">
-                            @csrf
-                            <input type="text" inputmode="numeric" name="markup_amount" value="0" data-currency-input class="w-28 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" placeholder="Tambahan" />
-                            <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">
-                                Proses Tebus Resep
-                            </button>
-                        </form>
+                        <a href="{{ route('kasir.transaksi', ['prescription_id' => $prescription->id]) }}#transaksi-form" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors">
+                            Proses Tebus Resep
+                        </a>
                         <a target="_blank" href="{{ route('kasir.prescriptions.print', $prescription) }}" class="px-3 py-2 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors">
                             Cetak Resep
                         </a>
@@ -315,7 +440,9 @@
 
 <script>
     (function () {
-        const select = document.getElementById('medicine_id_select');
+        const medicineIdInput = document.getElementById('medicine_id_input');
+        const searchInput = document.getElementById('medicine_search_input');
+        const pickerItems = Array.from(document.querySelectorAll('[data-medicine-picker-item]'));
         const unitPriceInput = document.getElementById('unit_price_input');
         const nameElement = document.getElementById('medicine_summary_name');
         const stockElement = document.getElementById('medicine_summary_stock');
@@ -323,7 +450,15 @@
         const sellElement = document.getElementById('medicine_summary_sell');
         const listSellElements = Array.from(document.querySelectorAll('[data-list-sell]'));
 
-        if (!select || !unitPriceInput || !nameElement || !stockElement || !buyElement || !sellElement) {
+        if (
+            !medicineIdInput
+            || !unitPriceInput
+            || !nameElement
+            || !stockElement
+            || !buyElement
+            || !sellElement
+            || pickerItems.length === 0
+        ) {
             return;
         }
 
@@ -348,7 +483,7 @@
         };
 
         const syncSellingPricePreview = () => {
-            const selectedMedicineId = select.value;
+            const selectedMedicineId = medicineIdInput.value;
             const numericInput = parseCurrencyNumber(unitPriceInput.value);
             const hasInput = Number.isFinite(numericInput) && numericInput >= 0;
             const displayValue = hasInput ? formatRupiah(numericInput) : '-';
@@ -362,9 +497,18 @@
             });
         };
 
+        const getSelectedMedicineItem = () => {
+            const selectedId = medicineIdInput.value;
+            if (!selectedId) {
+                return null;
+            }
+
+            return pickerItems.find((item) => item.dataset.id === selectedId) || null;
+        };
+
         const updateMedicineSummary = () => {
-            const option = select.options[select.selectedIndex];
-            const hasSelection = option && option.value !== '';
+            const selectedItem = getSelectedMedicineItem();
+            const hasSelection = !!selectedItem;
 
             if (!hasSelection) {
                 nameElement.textContent = 'Belum pilih obat';
@@ -375,11 +519,46 @@
                 return;
             }
 
-            nameElement.textContent = option.text;
-            stockElement.textContent = option.dataset.stock || '-';
-            buyElement.textContent = formatRupiah(option.dataset.buy);
+            nameElement.textContent = selectedItem.dataset.name || selectedItem.textContent || '-';
+            stockElement.textContent = selectedItem.dataset.stock || '-';
+            buyElement.textContent = formatRupiah(selectedItem.dataset.buy);
             syncSellingPricePreview();
         };
+
+        const filterMedicineItems = () => {
+            if (!searchInput) {
+                return;
+            }
+
+            const keyword = searchInput.value.trim().toLowerCase();
+            const selectedValue = medicineIdInput.value;
+
+            pickerItems.forEach((item) => {
+                const haystack = (item.dataset.search || item.textContent || '').toLowerCase();
+                const matches = keyword === '' || haystack.includes(keyword);
+                item.classList.toggle('hidden', !matches && item.dataset.id !== selectedValue);
+            });
+        };
+
+        const setSelectedMedicine = (medicineId) => {
+            const selectedItem = pickerItems.find((item) => item.dataset.id === medicineId) || null;
+            if (!selectedItem) {
+                return;
+            }
+
+            medicineIdInput.value = selectedItem.dataset.id || '';
+            if (searchInput) {
+                searchInput.value = selectedItem.dataset.label || selectedItem.textContent || '';
+            }
+            updateMedicineSummary();
+            filterMedicineItems();
+        };
+
+        pickerItems.forEach((item) => {
+            item.addEventListener('click', () => {
+                setSelectedMedicine(item.dataset.id || '');
+            });
+        });
 
         document.querySelectorAll('[data-pick-medicine]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -388,15 +567,80 @@
                     return;
                 }
 
-                select.value = medicineId;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-                select.focus();
+                setSelectedMedicine(medicineId);
+                searchInput?.focus();
             });
         });
 
         unitPriceInput.addEventListener('input', syncSellingPricePreview);
-        select.addEventListener('change', updateMedicineSummary);
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                medicineIdInput.value = '';
+                filterMedicineItems();
+                updateMedicineSummary();
+            });
+        }
+        if (medicineIdInput.value) {
+            setSelectedMedicine(medicineIdInput.value);
+        } else {
+            filterMedicineItems();
+            updateMedicineSummary();
+        }
         updateMedicineSummary();
+    })();
+
+    (function () {
+        const rows = Array.from(document.querySelectorAll('[data-prescription-row]'));
+        const subtotalDisplay = document.getElementById('prescription-subtotal-display');
+
+        if (!rows.length || !subtotalDisplay) {
+            return;
+        }
+
+        const formatRupiah = (value) => {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return 'Rp 0';
+            }
+
+            return 'Rp ' + new Intl.NumberFormat('id-ID', {
+                maximumFractionDigits: 0,
+            }).format(numeric);
+        };
+
+        const parseDigits = (value) => {
+            const digits = String(value ?? '').replace(/[^\d]/g, '');
+            return digits === '' ? 0 : Number(digits);
+        };
+
+        const updateSubtotal = () => {
+            let subtotal = 0;
+
+            rows.forEach((row) => {
+                const quantity = Number(row.getAttribute('data-qty') || 0);
+                const unitInput = row.querySelector('[data-prescription-unit-price]');
+                const lineTotalEl = row.querySelector('[data-prescription-line-total]');
+                const unitPrice = parseDigits(unitInput?.value);
+                const lineTotal = Math.max(0, quantity) * Math.max(0, unitPrice);
+
+                if (lineTotalEl) {
+                    lineTotalEl.textContent = formatRupiah(lineTotal);
+                }
+
+                subtotal += lineTotal;
+            });
+
+            subtotalDisplay.textContent = formatRupiah(subtotal);
+        };
+
+        rows.forEach((row) => {
+            const unitInput = row.querySelector('[data-prescription-unit-price]');
+            if (unitInput) {
+                unitInput.addEventListener('input', updateSubtotal);
+            }
+        });
+
+        updateSubtotal();
     })();
 </script>
 @endsection

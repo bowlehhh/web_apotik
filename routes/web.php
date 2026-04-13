@@ -40,7 +40,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/konsultasi', [DoctorDashboardController::class, 'storeConsultation'])->name('consultations.store');
         Route::patch('/riwayat/{visit}', [DoctorDashboardController::class, 'updateVisit'])->name('visits.update');
         Route::post('/riwayat/{visit}/resep', [DoctorDashboardController::class, 'storePrescription'])->name('prescriptions.store');
-        Route::patch('/obat/{medicine}', [DoctorDashboardController::class, 'updateMedicine'])->name('medicines.update');
+        Route::patch('/resep/item/{item}', [DoctorDashboardController::class, 'updatePrescriptionItem'])->name('prescriptions.items.update');
+        Route::delete('/resep/item/{item}', [DoctorDashboardController::class, 'destroyPrescriptionItem'])->name('prescriptions.items.destroy');
     });
 
     Route::middleware('role:kasir,master_admin')->prefix('kasir')->as('kasir.')->group(function () {
@@ -48,6 +49,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/transaksi', [KasirDashboardController::class, 'transactions'])->name('transaksi');
         Route::get('/transaksi/cetak-riwayat', [KasirDashboardController::class, 'printSalesHistory'])->name('sales.history.print');
         Route::get('/transaksi/{sale}/cetak', [KasirDashboardController::class, 'printSale'])->name('sales.print');
+        Route::post('/transaksi', [KasirDashboardController::class, 'storeTransaction'])->name('transactions.store');
         Route::post('/transaksi/non-resep', [KasirDashboardController::class, 'storeNonPrescriptionSale'])->name('sales.non-prescription.store');
         Route::post('/resep/{prescription}/proses', [KasirDashboardController::class, 'dispensePrescription'])->name('prescriptions.dispense');
         Route::get('/resep/{prescription}/cetak', [KasirDashboardController::class, 'printPrescription'])->name('prescriptions.print');

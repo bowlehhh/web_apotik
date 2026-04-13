@@ -16,22 +16,22 @@ class RoleUserSeeder extends Seeder
 
         $users = [
             [
-                'name' => 'Dokter Apotek',
+                'name' => 'Dokter Apotik Sumber Sehat',
                 'email' => 'dokter@apotik.test',
                 'role' => User::ROLE_DOKTER,
             ],
             [
-                'name' => 'Admin Apotek',
+                'name' => 'Admin Apotik Sumber Sehat',
                 'email' => 'admin@apotik.test',
                 'role' => User::ROLE_ADMIN,
             ],
             [
-                'name' => 'Kasir Apotek',
+                'name' => 'Kasir Apotik Sumber Sehat',
                 'email' => 'kasir@apotik.test',
                 'role' => User::ROLE_KASIR,
             ],
             [
-                'name' => 'Master Admin Apotek',
+                'name' => 'Master Admin Apotik Sumber Sehat',
                 'email' => 'masteradmin@apotik.test',
                 'role' => User::ROLE_MASTER_ADMIN,
             ],

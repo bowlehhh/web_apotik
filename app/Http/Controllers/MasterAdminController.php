@@ -31,7 +31,9 @@ class MasterAdminController extends Controller
 
     public function dashboard(Request $request): View
     {
-        $today = now()->toDateString();
+        $now = now();
+        $today = $now->toDateString();
+        $thirtyDaysAhead = $now->copy()->addDays(30)->toDateString();
 
         $purchaseLogs = MedicinePurchaseLog::query()
             ->with(['medicine', 'createdBy'])
@@ -61,6 +63,13 @@ class MasterAdminController extends Controller
             'sales_total' => (float) Sale::query()
                 ->selectRaw('COALESCE(SUM(total_amount), 0) as total_sales')
                 ->value('total_sales'),
+            'sales_month_total' => (float) Sale::query()
+                ->whereYear('sold_at', $now->year)
+                ->whereMonth('sold_at', $now->month)
+                ->sum('total_amount'),
+            'sales_year_total' => (float) Sale::query()
+                ->whereYear('sold_at', $now->year)
+                ->sum('total_amount'),
             'sales_transactions' => Sale::query()->count(),
             'today_purchases' => MedicinePurchaseLog::query()
                 ->whereDate('purchased_at', $today)
@@ -69,7 +78,17 @@ class MasterAdminController extends Controller
                 ->whereDate('sold_at', $today)
                 ->count(),
             'low_stock_medicines' => Medicine::query()
+                ->where('stock', '>', 0)
                 ->where('stock', '<=', 10)
+                ->count(),
+            'expiring_soon_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '>=', $today)
+                ->whereDate('expiry_date', '<=', $thirtyDaysAhead)
+                ->count(),
+            'expired_medicines' => Medicine::query()
+                ->whereNotNull('expiry_date')
+                ->whereDate('expiry_date', '<', $today)
                 ->count(),
             'active_users' => User::query()->where('is_active', true)->count(),
             'inactive_users' => User::query()->where('is_active', false)->count(),
@@ -292,7 +311,7 @@ class MasterAdminController extends Controller
         $this->normalizeFormattedNumericInputs($request, ['stock'], ['buy_price', 'sell_price']);
 
         $validated = $request->validate([
-            'barcode' => ['nullable', 'string', 'max:120', 'unique:medicines,barcode'],
+            'barcode' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'trade_name' => ['nullable', 'string', 'max:255'],
             'dosage' => ['nullable', 'string', 'max:120'],
@@ -303,7 +322,7 @@ class MasterAdminController extends Controller
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'expiry_date' => ['required', 'date'],
             'unit' => ['required', 'string', 'max:30'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama obat wajib diisi.',
@@ -311,20 +330,21 @@ class MasterAdminController extends Controller
             'buy_price.required' => 'Harga beli wajib diisi.',
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
             'expiry_date.required' => 'Tanggal kadaluarsa wajib diisi.',
-            'photo.mimes' => 'Format foto belum didukung. Gunakan JPG, PNG, WEBP, HEIC, HEIF, atau AVIF.',
-            'photo.max' => 'Ukuran foto maksimal 5 MB.',
+            'photo.mimetypes' => 'File foto harus berupa gambar yang valid.',
+            'photo.max' => 'Ukuran foto maksimal 100 MB.',
         ]);
 
         $photoPath = $request->hasFile('photo')
             ? $request->file('photo')->store('medicines/photos', 'public')
             : null;
 
-        $createdMedicine = null;
+        $storedMedicine = null;
 
-        DB::transaction(function () use ($request, $validated, $photoPath, &$createdMedicine): void {
+        DB::transaction(function () use ($request, $validated, $photoPath, &$storedMedicine): void {
+            $barcode = trim((string) ($validated['barcode'] ?? ''));
             $medicinePayload = [
                 'name' => $validated['name'],
-                'barcode' => $validated['barcode'] ?? null,
+                'barcode' => $barcode !== '' ? $barcode : null,
                 'trade_name' => $validated['trade_name'] ?? null,
                 'dosage' => $validated['dosage'] ?? null,
                 'category' => $validated['category'] ?? null,
@@ -342,10 +362,10 @@ class MasterAdminController extends Controller
                 $medicinePayload['entry_source'] = Medicine::ENTRY_SOURCE_MANUAL;
             }
 
-            $createdMedicine = Medicine::query()->create($medicinePayload);
+            $storedMedicine = Medicine::query()->create($medicinePayload);
 
             MedicinePurchaseLog::query()->create([
-                'medicine_id' => $createdMedicine->id,
+                'medicine_id' => $storedMedicine->id,
                 'created_by' => $request->user()->id,
                 'quantity' => (int) $validated['stock'],
                 'buy_price' => (float) $validated['buy_price'],
@@ -362,7 +382,7 @@ class MasterAdminController extends Controller
             'master_admin.master_obat',
             'create',
             "Master admin menambahkan obat baru {$validated['name']}.",
-            $createdMedicine,
+            $storedMedicine,
             [
                 'medicine_name' => $validated['name'],
                 'barcode' => $validated['barcode'] ?? null,
@@ -398,7 +418,7 @@ class MasterAdminController extends Controller
         }
 
         $validated = $request->validate([
-            'barcode' => ['nullable', 'string', 'max:120', Rule::unique('medicines', 'barcode')->ignore($medicine->id)],
+            'barcode' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'trade_name' => ['nullable', 'string', 'max:255'],
             'dosage' => ['nullable', 'string', 'max:120'],
@@ -409,7 +429,7 @@ class MasterAdminController extends Controller
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'expiry_date' => ['required', 'date'],
             'unit' => ['required', 'string', 'max:30'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',

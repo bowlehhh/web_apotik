@@ -57,6 +57,20 @@
                 @forelse ($priceReportLogs as $medicine)
                     @php
                         $latestPurchaseLog = $medicine->purchaseLogs->first();
+                        $daysLeft = $medicine->expiry_date
+                            ? now()->startOfDay()->diffInDays($medicine->expiry_date->copy()->startOfDay(), false)
+                            : null;
+                        $isExpired = $daysLeft !== null && $daysLeft < 0;
+                        $isExpiringSoon = $daysLeft !== null && $daysLeft >= 0 && $daysLeft <= 30;
+                        $expBadgeClass = 'bg-emerald-100 text-emerald-800';
+                        $expPrefix = 'Belum Exp:';
+                        if ($isExpired) {
+                            $expBadgeClass = 'bg-red-100 text-red-700';
+                            $expPrefix = 'Sudah Exp:';
+                        } elseif ($isExpiringSoon) {
+                            $expBadgeClass = 'bg-amber-100 text-amber-700';
+                            $expPrefix = 'Mau Exp:';
+                        }
                     @endphp
                     <tr class="align-top hover:bg-slate-50/70 transition-colors">
                         <td class="px-5 py-4 text-slate-700">
@@ -85,7 +99,9 @@
                             <div class="text-xs text-slate-500 mt-1">{{ $medicine->unit ?: '-' }}</div>
                         </td>
                         <td class="px-4 py-4 text-slate-700">
-                            <div class="font-medium">{{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}</div>
+                            <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold {{ $expBadgeClass }}">
+                                {{ $expPrefix }} {{ optional($medicine->expiry_date)->format('d M Y') ?: '-' }}
+                            </span>
                         </td>
                         <td class="px-4 py-4">
                             <div class="font-bold text-rose-600">Rp {{ number_format((float) $medicine->buy_price, 0, ',', '.') }}</div>

@@ -56,7 +56,7 @@ class AdminBarcodeController extends Controller
         $this->normalizeFormattedNumericInputs($request, ['stock'], ['buy_price', 'sell_price']);
 
         $validated = $request->validate([
-            'barcode' => ['required', 'string', 'max:120', 'unique:medicines,barcode'],
+            'barcode' => ['required', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:255'],
             'trade_name' => ['nullable', 'string', 'max:255'],
             'dosage' => ['nullable', 'string', 'max:120'],
@@ -67,19 +67,18 @@ class AdminBarcodeController extends Controller
             'sell_price' => ['nullable', 'numeric', 'min:0'],
             'expiry_date' => ['required', 'date'],
             'unit' => ['required', 'string', 'max:30'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,heic,heif,avif', 'max:5120'],
+            'photo' => ['nullable', 'file', 'mimetypes:image/*', 'max:102400'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'barcode.required' => 'Barcode wajib diisi.',
-            'barcode.unique' => 'Barcode sudah terdaftar di sistem.',
             'name.required' => 'Nama barang wajib diisi.',
             'stock.required' => 'Stok awal wajib diisi.',
             'buy_price.required' => 'Harga beli wajib diisi.',
             'purchase_source.required' => 'Outlet atau tempat beli obat wajib diisi.',
             'expiry_date.required' => 'Tanggal kadaluarsa wajib diisi.',
-            'photo.mimes' => 'Format foto belum didukung. Gunakan JPG, PNG, WEBP, HEIC, HEIF, atau AVIF.',
-            'photo.max' => 'Ukuran foto maksimal 5 MB.',
+            'photo.mimetypes' => 'File foto harus berupa gambar yang valid.',
+            'photo.max' => 'Ukuran foto maksimal 100 MB.',
         ]);
 
         $cleanBarcode = trim($validated['barcode']);
@@ -88,11 +87,12 @@ class AdminBarcodeController extends Controller
             ? $request->file('photo')->store('medicines/photos', 'public')
             : null;
 
-        $createdMedicine = null;
+        $storedMedicine = null;
 
-        DB::transaction(function () use ($request, $validated, $photoPath, &$createdMedicine): void {
+        DB::transaction(function () use ($request, $validated, $photoPath, &$storedMedicine): void {
+            $barcode = trim($validated['barcode']);
             $medicinePayload = [
-                'barcode' => trim($validated['barcode']),
+                'barcode' => $barcode,
                 'name' => $validated['name'],
                 'trade_name' => $validated['trade_name'] ?? null,
                 'dosage' => $validated['dosage'] ?? null,
@@ -113,10 +113,10 @@ class AdminBarcodeController extends Controller
                 $medicinePayload['entry_source'] = Medicine::ENTRY_SOURCE_BARCODE;
             }
 
-            $createdMedicine = Medicine::query()->create($medicinePayload);
+            $storedMedicine = Medicine::query()->create($medicinePayload);
 
             MedicinePurchaseLog::query()->create([
-                'medicine_id' => $createdMedicine->id,
+                'medicine_id' => $storedMedicine->id,
                 'created_by' => $request->user()?->id,
                 'quantity' => (int) $validated['stock'],
                 'buy_price' => (float) $validated['buy_price'],
@@ -133,7 +133,7 @@ class AdminBarcodeController extends Controller
             'admin.barcode',
             'create_medicine_from_barcode',
             'Admin menambahkan obat baru melalui input barcode.',
-            $createdMedicine,
+            $storedMedicine,
             [
                 'medicine_name' => $validated['name'],
                 'barcode' => $cleanBarcode,
