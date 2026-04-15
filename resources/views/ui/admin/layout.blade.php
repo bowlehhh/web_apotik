@@ -138,11 +138,25 @@
 
     <main class="min-h-screen lg:ml-64">
         <header class="sticky top-0 z-30 border-b border-slate-100 bg-white/85 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4 lg:px-8">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                <div class="flex items-start gap-3">
-                    <label for="admin-mobile-nav-toggle" class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm lg:hidden">
-                        <span class="material-symbols-outlined">menu</span>
+            <div class="space-y-3 lg:hidden">
+                <div class="flex items-center justify-between">
+                    <label for="admin-mobile-nav-toggle" class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-blue-700 hover:bg-blue-50">
+                        <span class="material-symbols-outlined text-[20px]">menu</span>
                     </label>
+                    <p class="text-base font-extrabold tracking-tight text-blue-700">APOTEK SUMBER SEHAT</p>
+                    <span class="inline-block h-9 w-9" aria-hidden="true"></span>
+                </div>
+                <div>
+                    <h2 class="text-lg font-extrabold text-blue-900">@yield('admin_heading', 'Dashboard Admin')</h2>
+                    <p class="text-xs font-medium text-slate-500">@yield('admin_subheading', 'Manajemen obat, gudang, dan laporan operasional.')</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    @yield('admin_actions')
+                </div>
+            </div>
+
+            <div class="hidden flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 lg:flex">
+                <div class="flex items-start gap-3">
                     <div>
                         <h2 class="text-xl font-extrabold text-blue-900 sm:text-2xl">@yield('admin_heading', 'Dashboard Admin')</h2>
                         <p class="text-xs font-medium text-slate-500 sm:text-sm">@yield('admin_subheading', 'Manajemen obat, gudang, dan laporan operasional.')</p>

@@ -35,10 +35,6 @@
         <h3 class="text-3xl font-black mt-2 text-indigo-700">{{ $stats['today_non_prescription_sales'] }}</h3>
     </article>
     <article class="bg-white rounded-[2rem] p-6 shadow-sm">
-        <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Omzet Tanpa Resep</p>
-        <h3 class="text-2xl font-black mt-2 text-indigo-700">Rp {{ number_format((float) $stats['today_non_prescription_revenue'], 0, ',', '.') }}</h3>
-    </article>
-    <article class="bg-white rounded-[2rem] p-6 shadow-sm">
         <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Pemasukan Bulan Ini</p>
         <h3 class="text-2xl font-black mt-2 text-emerald-700">Rp {{ number_format((float) $stats['month_total_revenue'], 0, ',', '.') }}</h3>
     </article>

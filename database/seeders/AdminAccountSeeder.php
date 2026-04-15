@@ -15,7 +15,7 @@ class AdminAccountSeeder extends Seeder
             [
                 'name' => 'Admin Apotek',
                 'role' => User::ROLE_ADMIN,
-                'password' => 'rahasia123',
+                'password' => 'admin123',
                 'email_verified_at' => Carbon::now(),
             ]
         );

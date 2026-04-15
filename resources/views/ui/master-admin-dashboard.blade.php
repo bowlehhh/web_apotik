@@ -14,62 +14,81 @@
 @endsection
 
 @section('master_content')
-    <section class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-8">
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
+    <section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-8">
+        <article class="col-span-2 overflow-hidden rounded-[1.75rem] border border-blue-200 bg-gradient-to-br from-blue-700 via-blue-700 to-indigo-700 p-5 text-white shadow-sm sm:p-6 lg:col-span-2 xl:col-span-2">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100">Omzet Total</p>
+            <h3 class="mt-2 text-xl font-black leading-tight sm:text-2xl">Rp {{ number_format((float) ($masterStats['sales_total'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-2 text-[11px] text-blue-100">Akumulasi nominal penjualan obat.</p>
+        </article>
+        <article class="rounded-[1.4rem] border border-slate-200 bg-white/90 p-4 shadow-sm">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Barang Masuk</p>
-            <h3 class="mt-1 text-2xl font-black text-blue-900">{{ number_format((int) ($masterStats['purchase_entries'] ?? 0)) }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Total log obat masuk tersimpan di sistem.</p>
+            <h3 class="mt-1 text-lg font-black text-blue-900 sm:text-xl">{{ number_format((int) ($masterStats['purchase_entries'] ?? 0)) }}</h3>
+            <p class="mt-1 text-[11px] text-slate-500">Log masuk.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Belanja Pembelian</p>
-            <h3 class="mt-1 text-2xl font-black text-rose-600">Rp {{ number_format((float) ($masterStats['purchase_spending'] ?? 0), 0, ',', '.') }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Akumulasi biaya pembelian obat.</p>
+        <article class="rounded-[1.4rem] border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Belanja</p>
+            <h3 class="mt-1 text-lg font-black text-rose-600 sm:text-xl">Rp {{ number_format((float) ($masterStats['purchase_spending'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-1 text-[11px] text-slate-500">Total beli obat.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Transaksi Jual</p>
-            <h3 class="mt-1 text-2xl font-black text-emerald-600">{{ number_format((int) ($masterStats['sales_transactions'] ?? 0)) }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Jumlah transaksi yang diproses kasir.</p>
+        <article class="rounded-[1.4rem] border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Transaksi</p>
+            <h3 class="mt-1 text-lg font-black text-emerald-600 sm:text-xl">{{ number_format((int) ($masterStats['sales_transactions'] ?? 0)) }}</h3>
+            <p class="mt-1 text-[11px] text-slate-500">Transaksi jual.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Omzet Total</p>
-            <h3 class="mt-1 text-2xl font-black text-indigo-700">Rp {{ number_format((float) ($masterStats['sales_total'] ?? 0), 0, ',', '.') }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Akumulasi nominal penjualan obat.</p>
+        <article class="rounded-[1.4rem] border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Bulan Ini</p>
+            <h3 class="mt-1 text-lg font-black text-emerald-700 sm:text-xl">Rp {{ number_format((float) ($masterStats['sales_month_total'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-1 text-[11px] text-slate-500">Pemasukan bulan.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pemasukan Bulan Ini</p>
-            <h3 class="mt-1 text-2xl font-black text-emerald-700">Rp {{ number_format((float) ($masterStats['sales_month_total'] ?? 0), 0, ',', '.') }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Total pemasukan pada bulan berjalan.</p>
+        <article class="rounded-[1.4rem] border border-slate-200 bg-white/90 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tahun Ini</p>
+            <h3 class="mt-1 text-lg font-black text-sky-700 sm:text-xl">Rp {{ number_format((float) ($masterStats['sales_year_total'] ?? 0), 0, ',', '.') }}</h3>
+            <p class="mt-1 text-[11px] text-slate-500">Pemasukan tahun.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pemasukan Tahun Ini</p>
-            <h3 class="mt-1 text-2xl font-black text-sky-700">Rp {{ number_format((float) ($masterStats['sales_year_total'] ?? 0), 0, ',', '.') }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Total pemasukan pada tahun berjalan.</p>
+        <article class="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700">Stok Rendah</p>
+            <h3 class="mt-1 text-lg font-black text-amber-700 sm:text-xl">{{ number_format((int) ($masterStats['low_stock_medicines'] ?? 0)) }}</h3>
+            <p class="mt-1 text-[11px] text-amber-800/80">Stok <= 10.</p>
         </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Stok Rendah</p>
-            <h3 class="mt-1 text-2xl font-black text-amber-600">{{ number_format((int) ($masterStats['low_stock_medicines'] ?? 0)) }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Obat dengan stok 10 atau kurang.</p>
-        </article>
-        <article class="rounded-[2rem] bg-white p-6 shadow-sm">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">User Aktif</p>
-            <h3 class="mt-1 text-2xl font-black text-sky-700">{{ number_format((int) ($masterStats['active_users'] ?? 0)) }}</h3>
-            <p class="mt-2 text-xs text-slate-500">Akun aktif pada sistem.</p>
+        <article class="rounded-[1.4rem] border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-cyan-700">User Aktif</p>
+            <h3 class="mt-1 text-lg font-black text-cyan-700 sm:text-xl">{{ number_format((int) ($masterStats['active_users'] ?? 0)) }}</h3>
+            <p class="mt-1 text-[11px] text-cyan-800/80">Akun aktif.</p>
         </article>
     </section>
 
-    <section class="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <article class="xl:col-span-2 rounded-[2.5rem] bg-white p-8 shadow-sm">
-            <div class="mb-6 flex items-center justify-between">
+    <section class="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <article class="xl:col-span-2 rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h3 class="text-xl font-extrabold text-blue-900">Barang Masuk Terbaru</h3>
-                    <p class="text-sm text-slate-500">Pantauan item obat masuk terbaru.</p>
+                    <h3 class="text-lg font-extrabold text-blue-900 sm:text-xl">Barang Masuk Terbaru</h3>
+                    <p class="text-xs text-slate-500 sm:text-sm">Pantauan item obat masuk terbaru.</p>
                 </div>
-                <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                <span class="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-blue-700">
                     Hari ini: {{ number_format((int) ($masterStats['today_purchases'] ?? 0)) }}
                 </span>
             </div>
 
-            <div class="overflow-x-auto rounded-xl border border-slate-100">
+            <div class="space-y-3 md:hidden">
+                @forelse ($purchaseLogs as $log)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="font-bold text-slate-800">{{ $log->medicine?->name ?? 'Obat tidak ditemukan' }}</p>
+                            <span class="text-xs font-semibold text-emerald-700">+{{ $log->quantity }}</span>
+                        </div>
+                        <p class="mt-1 text-[11px] text-slate-500">{{ optional($log->purchased_at)->format('d M Y H:i') ?: '-' }}</p>
+                        <p class="mt-2 text-[11px] text-slate-600">Sumber: {{ $log->purchase_source ?: '-' }}</p>
+                        <p class="text-[11px] text-slate-600">Harga: Rp {{ number_format((float) $log->buy_price, 0, ',', '.') }}</p>
+                        <p class="mt-1 text-xs font-bold text-rose-600">Total: Rp {{ number_format((float) $log->quantity * (float) $log->buy_price, 0, ',', '.') }}</p>
+                    </div>
+                @empty
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        Belum ada barang masuk yang tercatat.
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="hidden overflow-x-auto rounded-xl border border-slate-100 md:block">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                         <tr>
@@ -104,30 +123,30 @@
             </div>
         </article>
 
-        <article class="rounded-[2.5rem] bg-white p-8 shadow-sm">
-            <h3 class="mb-6 text-xl font-extrabold text-blue-900">Ringkasan Harian</h3>
-            <div class="space-y-4">
-                <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+        <article class="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-6">
+            <h3 class="mb-4 text-lg font-extrabold text-blue-900 sm:text-xl">Ringkasan Harian</h3>
+            <div class="space-y-3">
+                <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
                     <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Transaksi Hari Ini</p>
-                    <h4 class="mt-1 text-2xl font-black text-emerald-600">{{ number_format((int) ($masterStats['today_sales'] ?? 0)) }}</h4>
+                    <h4 class="mt-1 text-xl font-black text-emerald-600 sm:text-2xl">{{ number_format((int) ($masterStats['today_sales'] ?? 0)) }}</h4>
                     <p class="mt-1 text-xs text-slate-500">Transaksi penjualan pada hari ini.</p>
                 </div>
-                <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
                     <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">User Nonaktif</p>
-                    <h4 class="mt-1 text-2xl font-black text-rose-600">{{ number_format((int) ($masterStats['inactive_users'] ?? 0)) }}</h4>
+                    <h4 class="mt-1 text-xl font-black text-rose-600 sm:text-2xl">{{ number_format((int) ($masterStats['inactive_users'] ?? 0)) }}</h4>
                     <p class="mt-1 text-xs text-slate-500">Akun yang dinonaktifkan sementara.</p>
                 </div>
-                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <p class="text-[10px] font-bold uppercase tracking-widest text-amber-700">Warning Stok Rendah</p>
-                    <h4 class="mt-1 text-2xl font-black text-amber-700">{{ number_format((int) ($masterStats['low_stock_medicines'] ?? 0)) }}</h4>
+                    <h4 class="mt-1 text-xl font-black text-amber-700 sm:text-2xl">{{ number_format((int) ($masterStats['low_stock_medicines'] ?? 0)) }}</h4>
                     <p class="mt-1 text-xs text-amber-800/90">Obat stok 1-10 butuh restock.</p>
                     <a href="{{ route('master-admin.medicines.index', ['status' => 'low_stock']) }}" class="mt-3 inline-flex rounded-lg bg-amber-700 px-3 py-2 text-[11px] font-bold text-white hover:bg-amber-800 transition-colors">
                         Buka Filter Stok Rendah
                     </a>
                 </div>
-                <div class="rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div class="rounded-xl border border-red-200 bg-red-50 p-4">
                     <p class="text-[10px] font-bold uppercase tracking-widest text-red-700">Warning Kadaluarsa</p>
-                    <h4 class="mt-1 text-2xl font-black text-red-700">
+                    <h4 class="mt-1 text-xl font-black text-red-700 sm:text-2xl">
                         {{ number_format((int) (($masterStats['expired_medicines'] ?? 0) + ($masterStats['expiring_soon_medicines'] ?? 0))) }}
                     </h4>
                     <p class="mt-1 text-xs text-red-800/90">
@@ -147,17 +166,17 @@
         </article>
     </section>
 
-    <section class="grid grid-cols-1 gap-8 xl:grid-cols-2">
-        <article class="rounded-[2.5rem] bg-white p-8 shadow-sm">
-            <div class="mb-5 flex items-center justify-between">
-                <h3 class="text-xl font-extrabold text-blue-900">Obat Terakhir Diupdate</h3>
-                <a href="{{ route('master-admin.medicines.index') }}" class="text-sm font-bold text-primary">Lihat semua</a>
+    <section class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <article class="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-blue-900 sm:text-xl">Obat Terakhir Diupdate</h3>
+                <a href="{{ route('master-admin.medicines.index') }}" class="text-xs font-bold text-primary sm:text-sm">Lihat semua</a>
             </div>
             <div class="space-y-3">
                 @forelse ($topMedicines as $medicine)
-                    <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                    <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
                         <div>
-                            <p class="font-bold text-slate-800">{{ $medicine->name }}</p>
+                            <p class="text-sm font-bold text-slate-800">{{ $medicine->name }}</p>
                             <p class="text-xs text-slate-500">{{ $medicine->trade_name ?: '-' }} | {{ $medicine->category ?: '-' }}</p>
                         </div>
                         <div class="text-right">
@@ -166,21 +185,40 @@
                         </div>
                     </div>
                 @empty
-                    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
                         Belum ada data obat pada master.
                     </div>
                 @endforelse
             </div>
         </article>
 
-        <article class="rounded-[2.5rem] bg-white p-8 shadow-sm">
-            <div class="mb-5 flex items-center justify-between">
-                <h3 class="text-xl font-extrabold text-blue-900">Penjualan Terbaru</h3>
-                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+        <article class="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-blue-900 sm:text-xl">Penjualan Terbaru</h3>
+                <span class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
                     Total: {{ number_format((int) ($masterStats['sales_transactions'] ?? 0)) }}
                 </span>
             </div>
-            <div class="overflow-x-auto">
+
+            <div class="space-y-3 md:hidden">
+                @forelse ($recentSales as $sale)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="text-sm font-bold text-slate-800">{{ $sale->invoice_number }}</p>
+                            <p class="text-xs font-bold text-emerald-700">Rp {{ number_format((float) $sale->total_amount, 0, ',', '.') }}</p>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-600">Kasir: {{ $sale->cashier?->name ?? '-' }}</p>
+                        <p class="text-xs text-slate-600">Item: {{ number_format((int) $sale->total_items) }}</p>
+                        <p class="text-[11px] text-slate-500">{{ optional($sale->sold_at)->format('d M Y H:i') ?: '-' }}</p>
+                    </div>
+                @empty
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        Belum ada transaksi penjualan.
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full text-left text-sm">
                     <thead>
                         <tr class="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">

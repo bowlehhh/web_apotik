@@ -20,6 +20,7 @@
             $selectedMedicineLabel = null;
             if ($selectedMedicine) {
                 $selectedMedicineLabel = $selectedMedicine->name
+                    .' | Barcode: '.($selectedMedicine->barcode ?: '-')
                     .' | Exp: '.(optional($selectedMedicine->expiry_date)->format('d M Y') ?: '-')
                     .' | Kategori: '.($selectedMedicine->category ?: '-');
             }
@@ -144,6 +145,7 @@
                                     data-medicine-picker-item
                                     data-id="{{ $medicine->id }}"
                                     data-name="{{ $medicine->name }}"
+                                    data-barcode="{{ $medicine->barcode }}"
                                     data-stock="{{ (int) $medicine->stock }}"
                                     data-buy="{{ (float) $medicine->buy_price }}"
                                     data-label="{{ $medicineLabel }}"
@@ -159,6 +161,40 @@
                             @endforeach
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Scan Barcode</label>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                            <input
+                                id="medicine_barcode_input"
+                                type="text"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                                placeholder="Scan barcode di sini, lalu tekan Enter"
+                                autocomplete="off"
+                            />
+                            <button
+                                id="start_barcode_camera"
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-blue-700 hover:bg-blue-100 transition-colors"
+                            >
+                                Scan Kamera
+                            </button>
+                        </div>
+                        <p class="mt-1 text-[11px] text-slate-500">Barcode cocok otomatis pilih obat, tanpa perlu scroll daftar.</p>
+                        <div id="barcode_camera_panel" class="mt-3 hidden rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                            <div class="mb-2 flex items-center justify-between gap-2">
+                                <p class="text-[11px] font-bold uppercase tracking-widest text-blue-700">Kamera Scan Barcode</p>
+                                <button
+                                    id="stop_barcode_camera"
+                                    type="button"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-100"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                            <video id="barcode_camera_video" class="w-full rounded-lg border border-slate-200 bg-black/80" autoplay muted playsinline></video>
+                            <p id="barcode_camera_status" class="mt-2 text-[11px] text-slate-600">Mengaktifkan kamera...</p>
+                        </div>
+                    </div>
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Detail Obat</p>
                         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-3">
@@ -171,6 +207,10 @@
                                 <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
                                     <p class="text-slate-500 uppercase tracking-wide">Beli</p>
                                     <p id="medicine_summary_buy" class="font-bold text-slate-700 leading-tight break-words">-</p>
+                                </div>
+                                <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
+                                    <p class="text-slate-500 uppercase tracking-wide">ID Barcode</p>
+                                    <p id="medicine_summary_barcode" class="font-bold text-slate-700 leading-tight break-words">-</p>
                                 </div>
                                 <div class="rounded-lg border border-slate-200 bg-white p-2 min-w-0">
                                     <p class="text-slate-500 uppercase tracking-wide">Jual Dasar</p>
@@ -441,14 +481,28 @@
 <script>
     (function () {
         const medicineIdInput = document.getElementById('medicine_id_input');
+        const barcodeInput = document.getElementById('medicine_barcode_input');
+        const startCameraButton = document.getElementById('start_barcode_camera');
+        const stopCameraButton = document.getElementById('stop_barcode_camera');
+        const cameraPanel = document.getElementById('barcode_camera_panel');
+        const cameraVideo = document.getElementById('barcode_camera_video');
+        const cameraStatus = document.getElementById('barcode_camera_status');
         const searchInput = document.getElementById('medicine_search_input');
         const pickerItems = Array.from(document.querySelectorAll('[data-medicine-picker-item]'));
         const unitPriceInput = document.getElementById('unit_price_input');
         const nameElement = document.getElementById('medicine_summary_name');
         const stockElement = document.getElementById('medicine_summary_stock');
         const buyElement = document.getElementById('medicine_summary_buy');
+        const barcodeElement = document.getElementById('medicine_summary_barcode');
         const sellElement = document.getElementById('medicine_summary_sell');
         const listSellElements = Array.from(document.querySelectorAll('[data-list-sell]'));
+        const barcodeDetector = 'BarcodeDetector' in window
+            ? new BarcodeDetector({
+                formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'itf', 'codabar', 'qr_code'],
+            })
+            : null;
+        let cameraStream = null;
+        let cameraScanFrameId = null;
 
         if (
             !medicineIdInput
@@ -456,6 +510,7 @@
             || !nameElement
             || !stockElement
             || !buyElement
+            || !barcodeElement
             || !sellElement
             || pickerItems.length === 0
         ) {
@@ -514,6 +569,7 @@
                 nameElement.textContent = 'Belum pilih obat';
                 stockElement.textContent = '-';
                 buyElement.textContent = '-';
+                barcodeElement.textContent = '-';
                 sellElement.textContent = '-';
                 syncSellingPricePreview();
                 return;
@@ -522,6 +578,7 @@
             nameElement.textContent = selectedItem.dataset.name || selectedItem.textContent || '-';
             stockElement.textContent = selectedItem.dataset.stock || '-';
             buyElement.textContent = formatRupiah(selectedItem.dataset.buy);
+            barcodeElement.textContent = selectedItem.dataset.barcode || '-';
             syncSellingPricePreview();
         };
 
@@ -550,6 +607,9 @@
             if (searchInput) {
                 searchInput.value = selectedItem.dataset.label || selectedItem.textContent || '';
             }
+            if (barcodeInput) {
+                barcodeInput.value = selectedItem.dataset.barcode || '';
+            }
             updateMedicineSummary();
             filterMedicineItems();
         };
@@ -570,6 +630,167 @@
                 setSelectedMedicine(medicineId);
                 searchInput?.focus();
             });
+        });
+
+        const handleBarcodeScan = (rawValue = null) => {
+            if (!barcodeInput && rawValue === null) {
+                return;
+            }
+
+            const scannedValue = String(rawValue ?? barcodeInput.value).trim().toLowerCase();
+            if (scannedValue === '') {
+                return;
+            }
+
+            const exactMatches = pickerItems.filter((item) => (item.dataset.barcode || '').trim().toLowerCase() === scannedValue);
+            let targetItem = exactMatches.find((item) => Number(item.dataset.stock || 0) > 0) || exactMatches[0] || null;
+
+            if (!targetItem) {
+                targetItem = pickerItems.find((item) => {
+                    const itemBarcode = (item.dataset.barcode || '').trim().toLowerCase();
+                    return itemBarcode !== '' && itemBarcode.includes(scannedValue);
+                }) || null;
+            }
+
+            if (!targetItem) {
+                return;
+            }
+
+            setSelectedMedicine(targetItem.dataset.id || '');
+            barcodeInput.value = targetItem.dataset.barcode || '';
+            unitPriceInput.focus();
+            unitPriceInput.select();
+        };
+
+        const stopCameraScanLoop = () => {
+            if (cameraScanFrameId) {
+                cancelAnimationFrame(cameraScanFrameId);
+                cameraScanFrameId = null;
+            }
+        };
+
+        const stopBarcodeCamera = () => {
+            stopCameraScanLoop();
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach((track) => track.stop());
+                cameraStream = null;
+            }
+
+            if (cameraVideo) {
+                cameraVideo.srcObject = null;
+            }
+
+            if (cameraPanel) {
+                cameraPanel.classList.add('hidden');
+            }
+        };
+
+        const startCameraScanLoop = () => {
+            if (!barcodeDetector || !cameraVideo) {
+                return;
+            }
+
+            const scanFrame = async () => {
+                if (!cameraVideo || !cameraStream) {
+                    return;
+                }
+
+                try {
+                    const barcodes = await barcodeDetector.detect(cameraVideo);
+                    const first = barcodes?.[0];
+                    const rawValue = String(first?.rawValue ?? '').trim();
+
+                    if (rawValue !== '') {
+                        if (barcodeInput) {
+                            barcodeInput.value = rawValue;
+                        }
+                        handleBarcodeScan(rawValue);
+                        if (cameraStatus) {
+                            cameraStatus.textContent = `Barcode terbaca: ${rawValue}`;
+                        }
+                        stopBarcodeCamera();
+                        return;
+                    }
+                } catch (_error) {
+                    // Abaikan error deteksi sesaat, lanjut frame berikutnya.
+                }
+
+                cameraScanFrameId = requestAnimationFrame(scanFrame);
+            };
+
+            cameraScanFrameId = requestAnimationFrame(scanFrame);
+        };
+
+        const startBarcodeCamera = async () => {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                if (cameraStatus) {
+                    cameraStatus.textContent = 'Perangkat ini tidak mendukung akses kamera.';
+                }
+                return;
+            }
+
+            if (!barcodeDetector) {
+                if (cameraStatus) {
+                    cameraStatus.textContent = 'Browser belum mendukung deteksi barcode kamera. Gunakan scanner biasa.';
+                }
+                if (cameraPanel) {
+                    cameraPanel.classList.remove('hidden');
+                }
+                return;
+            }
+
+            stopBarcodeCamera();
+
+            if (cameraPanel) {
+                cameraPanel.classList.remove('hidden');
+            }
+            if (cameraStatus) {
+                cameraStatus.textContent = 'Arahkan kamera ke barcode...';
+            }
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                    },
+                    audio: false,
+                });
+
+                if (!cameraVideo) {
+                    return;
+                }
+
+                cameraVideo.srcObject = cameraStream;
+                await cameraVideo.play();
+                startCameraScanLoop();
+            } catch (_error) {
+                if (cameraStatus) {
+                    cameraStatus.textContent = 'Kamera gagal dibuka. Pastikan izin kamera sudah diberikan.';
+                }
+            }
+        };
+
+        if (barcodeInput) {
+            barcodeInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+                handleBarcodeScan();
+            });
+
+            barcodeInput.addEventListener('change', handleBarcodeScan);
+        }
+        startCameraButton?.addEventListener('click', () => {
+            startBarcodeCamera();
+        });
+        stopCameraButton?.addEventListener('click', () => {
+            stopBarcodeCamera();
+        });
+        window.addEventListener('beforeunload', () => {
+            stopBarcodeCamera();
         });
 
         unitPriceInput.addEventListener('input', syncSellingPricePreview);
